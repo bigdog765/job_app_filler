@@ -10,6 +10,7 @@ export const MoreInfoPopper: FC = () => {
 
   return (
     <Popper
+      data-jaf-ui=""
       id={isOpen ? `more-info-popper` : undefined}
       ref={popperRef}
       open={isOpen}

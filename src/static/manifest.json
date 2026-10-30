@@ -15,14 +15,17 @@
         "contentScript.js"
       ],
       "matches": [
-        "https://*.myworkdayjobs.com/*",
-        "https://*.myworkdaysite.com/*",
-        "https://*.greenhouse.io/*"
+        "http://*/*",
+        "https://*/*"
       ],
       "all_frames": true
     }
   ],
   "web_accessible_resources": [
+    {
+      "resources": ["*.woff", "*.woff2"],
+      "matches": ["http://*/*", "https://*/*"]
+    },
     {
       "resources": [
         "inject.js"

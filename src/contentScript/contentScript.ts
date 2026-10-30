@@ -1,60 +1,53 @@
+import './publicPath'
 import { Server } from '@src/shared/utils/crossContextCommunication/server'
-import { FieldPath, Answer } from '@src/shared/utils/types'
+import { getSiteAdapter } from '@src/shared/utils/siteAdapter'
 import { EVENT_LISTENER_ID, loadApp } from './app/App'
-import { answers1010, migrate1010 } from './utils/storage/Answers1010'
-import { convert106To1010, convert1010To106 } from './utils/storage/DataStore'
-import { SavedAnswer } from './utils/storage/DataStoreTypes'
-import { migrateEducation } from './utils/storage/migrateEducationSectionNames'
-import localProfile from 'local-profile'
-import { answersWithProfileFallback } from './utils/storage/profileFallback'
+import { answerRequest, prepareAnswers } from './utils/storage/answerService'
+import { startGenericForms } from '@src/inject/app/services/formFields/generic'
+import { setLocalTransport } from '@src/inject/app/services/contentScriptApi'
 
-// Regiser server and methods accessible to injected script.
-const server = new Server(process.env.CONTENT_SCRIPT_URL)
-server.register('addAnswer', async (newAnswer: Answer) => {
-  const answer1010 = answers1010.add(convert106To1010(newAnswer))
-  return convert1010To106(answer1010)
-})
-
-server.register('updateAnswer', async (newAnswer: Answer) => {
-  const answer1010 = answers1010.update(
-    convert106To1010(newAnswer) as SavedAnswer
-  )
-  return convert1010To106(answer1010)
-})
-
-server.register('getAnswer', async (fieldPath: FieldPath) => {
-  const storedAnswers = answers1010.search(fieldPath).map(convert1010To106)
-  return answersWithProfileFallback(storedAnswers, fieldPath, localProfile)
-})
-
-server.register('deleteAnswer', async (id: number) => {
-  return answers1010.delete(id)
-})
-
-// inject script
-function injectScript(filePath: string) {
-  const script = document.createElement('script')
-  script.src = chrome.runtime.getURL(filePath)
-  script.setAttribute('async', 'true')
-  script.type = 'module'
-  script.onload = function () {
-    script.remove()
-  }
-  ;(document.head || document.documentElement).appendChild(script)
+const specialized = getSiteAdapter(window.location.hostname) !== 'generic'
+let generic: ReturnType<typeof startGenericForms>
+let appLoaded = false
+function ensureApp() {
+  if (!appLoaded) { loadApp(); appLoaded = true }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SHOW_WHATS_NEW') {
-    document.dispatchEvent(new CustomEvent(EVENT_LISTENER_ID))
+    ensureApp()
+    setTimeout(() => document.dispatchEvent(new CustomEvent(EVENT_LISTENER_ID)), 100)
+    sendResponse({ ok: true })
+  }
+  if (message.type === 'ENABLE_GENERIC_FORM') {
+    if (specialized) {
+      sendResponse({ ok: true, specialized: true })
+    } else {
+      generic.enable().then((count) => sendResponse({ ok: true, count }))
+        .catch(() => sendResponse({ ok: false }))
+      return true
+    }
   }
 })
 
-const run = async () => {
-  await answers1010.load()
-  await migrate1010()
-  await migrateEducation()
-  injectScript('inject.js')
-  loadApp()
+async function run() {
+  if (!specialized) {
+    setLocalTransport(answerRequest)
+    generic = startGenericForms(document, prepareAnswers)
+    return
+  }
+  // Only ATS host patterns need page-context access to React internals.
+  const server = new Server(process.env.CONTENT_SCRIPT_URL)
+  for (const method of ['addAnswer', 'saveAnswer', 'updateAnswer', 'getAnswer', 'deleteAnswer']) {
+    server.register(method, (data) => answerRequest(method, data))
+  }
+  await prepareAnswers()
+  const script = document.createElement('script')
+  script.src = chrome.runtime.getURL('inject.js')
+  script.type = 'module'
+  script.onload = () => script.remove()
+  ;(document.head || document.documentElement).appendChild(script)
+  ensureApp()
 }
 
-run()
+run().catch(console.error)

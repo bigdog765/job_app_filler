@@ -1,23 +1,14 @@
 import { RegisterInputs as workday } from './app/services/formFields/workday'
 import { RegisterInputs as greenhouse } from './app/services/formFields/greenhouse'
 import { RegisterInputs as greenhouseReact } from './app/services/formFields/greenhouseReact'
+import { getSiteAdapter } from '@src/shared/utils/siteAdapter'
 
 type InputSetup = (node: Node) => Promise<void>
-const inputRegistrars: [string, InputSetup][] = [
-  ['myworkdayjobs.com', workday],
-  ['myworkdaysite.com', workday],
-  ['job-boards.greenhouse.io', greenhouseReact],
-  ['boards.greenhouse.io', greenhouse],
-  ['boards.eu.greenhouse.io', greenhouse],
-]
-const getRegisterInput = (domain: string): InputSetup => {
-  return inputRegistrars.find((site) => {
-    return domain.endsWith(site[0])
-  })[1]
-}
+const inputRegistrars: Record<string, InputSetup> = { workday, greenhouse, greenhouseReact }
 
 const run = async () => {
-  const RegisterInputs = getRegisterInput(window.location.host)
+  const RegisterInputs = inputRegistrars[getSiteAdapter(window.location.hostname)]
+  if (!RegisterInputs) return
   const observer = new MutationObserver(async (_) => {
     RegisterInputs(document)
   })

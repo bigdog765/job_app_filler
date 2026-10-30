@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import { getElement } from '@src/shared/utils/getElements'
 import { BaseFormInput } from '../baseFormInput'
+import { findRepeatedSectionHeading } from './sectionHeading'
 
 export abstract class WorkdayBaseInput<
   AnswerType
@@ -41,11 +42,13 @@ export abstract class WorkdayBaseInput<
   }
 
   get sectionLabelElement(): HTMLElement {
-    return getElement(this.element, this.sectionLabelXpath)
+    return findRepeatedSectionHeading(this.element) ||
+      getElement(this.element, this.sectionLabelXpath)
   }
   
   public get section(): string {
     // must always return a string, even a blank one.
-    return this.sectionLabelElement?.innerText || ''
+    const heading = this.sectionLabelElement
+    return (heading?.innerText || heading?.textContent || '').replace(/\s+/g, ' ').trim()
   }
 }

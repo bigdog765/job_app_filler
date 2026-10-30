@@ -3,7 +3,7 @@
 Job App Filler is a Chrome Manifest V3 extension forked from
 `berellevy/job_app_filler`. It adds per-field controls to save, edit, and reuse
 job application answers. Current adapters support Workday and both classic and
-React-based Greenhouse forms. Answers are persisted in `chrome.storage.local`;
+React-based Greenhouse forms, plus standard company application forms. Answers are persisted in `chrome.storage.local`;
 there is no application backend.
 
 ## Stack and layout
@@ -11,12 +11,16 @@ there is no application backend.
 - TypeScript, React 18, Material UI/Emotion, and Webpack 5; npm dependencies.
 - `src/static/manifest.json`: extension metadata, permissions, and allowed sites.
 - `src/contentScript/`: extension-context entry point, answer storage/migrations,
-  and release notices. Loads saved data before injecting the page script.
+  and release notices. Runs generic forms in isolation; injects a page script only
+  for supported ATS hosts. Generic forms use a direct local answer transport.
 - `src/inject/`: page-context form discovery, filling, and per-field React UI.
   `inject.ts` selects the site adapter and watches DOM changes.
 - `src/inject/app/services/formFields/`: `BaseFormInput` and site-specific
   adapters in `workday/`, `greenhouse/`, and `greenhouseReact/`. Fields are
   discovered with XPath and implement their own reading/filling behavior.
+- `formFields/generic/`: job-form detection, semantic HTML field discovery,
+  native event-based filling, and dynamic-form lifecycle. The popup can enable
+  unrecognized forms manually; generic auto-fill preserves existing values.
 - `src/shared/`: shared types, components, helpers, and the DOM custom-event
   request/response bridge between page and extension contexts.
 - `src/popup/`: extension popup. `src/background/` is currently a placeholder.

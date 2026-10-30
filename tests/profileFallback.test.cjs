@@ -35,6 +35,13 @@ test('normalizes case, spacing, required markers and aliases without fuzzy match
   assert.equal(matched[0].source, 'localProfile')
   assert.equal(matched[0].id, undefined)
   assert.deepEqual(resolve([], { ...field, fieldName: 'Manager Email' }, profile), [])
+  assert.equal(resolve([], { ...field, fieldName: 'State / Province *' }, {
+    entries: [{ labels: ['State/Province'], value: 'Example State' }],
+  })[0].answer, 'Example State')
+  for (const marker of ['✱', '✲', '✳', '∗', '⁎', '*']) {
+    assert.equal(resolve([], { ...field, fieldName: `Email${marker}` }, profile)[0].answer, 'test@example.test')
+    assert.deepEqual(resolve([], { ...field, fieldName: `Manager Email${marker}` }, profile), [])
+  }
 })
 
 test('missing, malformed, disabled and blank profiles leave fields unanswered', () => {
@@ -82,6 +89,25 @@ test('the first compatible populated entry wins', () => {
   const entries = [{ labels: ['Email'], value: '' }, ...profile.entries,
     { labels: ['Email'], value: 'second@example.test' }]
   assert.equal(resolve([], field, { entries })[0].answer, 'test@example.test')
+})
+
+test('month/year and year answers preserve date precision and reject invalid dates', () => {
+  const dateField = { fieldName: 'From', fieldType: 'MonthYear', section: 'Education 1' }
+  const dateProfile = (value) => ({ entries: [
+    { labels: ['From'], value, sections: ['Education 1'], fieldTypes: ['MonthYear'] },
+  ] })
+  const dates = dateProfile(['08', '2019'])
+  assert.deepEqual(resolve([], dateField, dates)[0].answer, ['08', '2019'])
+  resolve([], dateField, dates)[0].answer[0] = '01'
+  assert.deepEqual(resolve([], dateField, dates)[0].answer, ['08', '2019'])
+  assert.deepEqual(resolve([], { ...dateField, section: 'Work Experience 1' }, dates), [])
+  assert.deepEqual(resolve([], { ...dateField, fieldType: 'SimpleDropdown' }, dates), [])
+  for (const value of [['13', '2023'], ['00', '2023'], ['08', '23'], ['08', '15', '2023'], 'Present']) {
+    assert.deepEqual(resolve([], dateField, dateProfile(value)), [])
+  }
+  const yearField = { ...dateField, fieldType: 'Year' }
+  assert.equal(resolve([], yearField, { entries: [{ labels: ['From'], value: '2023' }] })[0].answer, '2023')
+  assert.deepEqual(resolve([], yearField, { entries: [{ labels: ['From'], value: '23' }] }), [])
 })
 
 test('editing a profile answer creates a Chrome answer and refreshes the fallback', async () => {

@@ -35,6 +35,29 @@ storage has no match. Copy `profile.example.json` if the local file is missing,
 then fill in your values. See [local profile setup](docs/local-profile.md) for
 matching rules, supported values, and build instructions.
 
+## Company website forms
+
+The extension also runs on HTTP/HTTPS company websites. It automatically detects
+likely application forms and adds the same Fill, Save, and More Info controls to
+standard text fields, textareas, native dropdowns, radio groups, checkboxes, and
+date/month inputs. Chrome-saved answers take priority over the local profile.
+
+If a form is not detected, open the extension popup and choose **Enable on this
+page**. Automatic filling preserves existing values and user edits; the wand can
+explicitly refill a field. Passwords, hidden fields, consent fields, file uploads,
+and custom dropdown widgets (including Lever's structured location search) are
+skipped. Forms inside shadow DOM are not yet
+supported. The extension never submits applications.
+
+After updating, reload the unpacked extension and refresh the website. Chrome
+may ask to approve access to additional websites because the content-script
+matches now cover HTTP/HTTPS. Local `file://` pages are not included; serve test
+forms over localhost to try them in Chrome.
+
+Generic forms run inside Chrome's isolated content-script context and call local
+answer storage directly. The page-event storage bridge remains limited to the
+existing Workday/Greenhouse adapters.
+
 ## Project layout
 
 Because autofilling fields isn't always simple, the project structure is a bit complicated.

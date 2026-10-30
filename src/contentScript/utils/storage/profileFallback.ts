@@ -3,17 +3,25 @@ import type { Answer, FieldPath } from '@src/shared/utils/types'
 // Match whole labels only: fuzzy matches can put personal data in unrelated fields.
 const normalize = (value: string) => value.normalize('NFKC').toLowerCase()
   .replace(/\(\s*(required|optional)\s*\)/g, '')
-  .replace(/[\s*:]+/g, ' ').trim()
+  .replace(/\s*\/\s*/g, '/')
+  .replace(/[\s*:✱✲✳∗⁎]+/g, ' ').trim()
 
 const stringList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
 
 function adaptValue(value: unknown, fieldType: string): unknown {
   switch (fieldType) {
+    case 'Year':
+      return typeof value === 'string' && /^[1-9]\d{3}$/.test(value) ? value : undefined
+    case 'MonthYear':
+      return stringList(value) && value.length === 2 &&
+        /^(0?[1-9]|1[0-2])$/.test(value[0]) && /^[1-9]\d{3}$/.test(value[1])
+        ? [...value] : undefined
     case 'TextInput':
     case 'BooleanRadio':
       return typeof value === 'string' && value.trim() ? value : undefined
     case 'SimpleDropdown':
+    case 'MultiSelect':
     case 'MultiCheckbox': {
       const values = typeof value === 'string' ? [value] : value
       return stringList(values) && values.length > 0 && values.every((v) => v.trim())

@@ -201,4 +201,8 @@ export abstract class BaseFormInput<AnswerType> {
    * for most fields it's enough to put the actual filling logic in the `fillField` method.
    */
   abstract fill(): Promise<void>
+
+  async autoFill(): Promise<void> {
+    await this.fill()
+  }
 }

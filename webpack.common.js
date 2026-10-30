@@ -15,7 +15,10 @@ module.exports = {
     popup: path.resolve("src/popup/popup.tsx"),
     inject: path.resolve('src/inject/inject.ts'),
     background: path.resolve('src/background/background.ts'),
-    contentScript: path.resolve('src/contentScript/contentScript.ts'),
+    contentScript: {
+      import: path.resolve('src/contentScript/contentScript.ts'),
+      publicPath: '',
+    },
   },
   module: {
     rules: [

@@ -42,6 +42,30 @@ export const App: FC<{}> = () => {
           </Typography>
           <Stack direction={'row'} spacing={1}>
             <Button
+              variant="contained"
+              onClick={async () => {
+                try {
+                  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+                  const result = await chrome.tabs.sendMessage(tab.id, { type: 'ENABLE_GENERIC_FORM' }, { frameId: 0 })
+                  setSnackbarMessage(result.specialized
+                    ? 'This site already uses its dedicated autofill adapter.'
+                    : result.ok && result.count > 0
+                      ? `Enabled autofill for ${result.count} fields.`
+                      : 'No supported visible fields found on this page.')
+                } catch {
+                  setSnackbarMessage('Refresh the website after reloading the extension, then try again.')
+                }
+                setSnackbarOpen(true)
+              }}
+            >
+              Enable on this page
+            </Button>
+          </Stack>
+          <Typography variant="body2" sx={{ my: 1 }}>
+            Application forms fill automatically. Use this button if a company form is not detected.
+          </Typography>
+          <Stack direction={'row'} spacing={1}>
+            <Button
               variant="outlined"
               onClick={() => {
                 chrome.tabs.query(
@@ -52,7 +76,7 @@ export const App: FC<{}> = () => {
                         type: 'SHOW_WHATS_NEW',
                       })
                       .catch((err) => {
-                        setSnackbarMessage('Only works on workday sites.')
+                        setSnackbarMessage('Refresh the website and try again.')
                         setSnackbarOpen(true)
                       }),
                       () => {}
@@ -74,13 +98,12 @@ export const App: FC<{}> = () => {
           <Divider sx={{ my: 2 }} />
 
           <Typography variant="h5" sx={{ mt: 2, mb: 1 }}>
-            Feaures
+            Features
           </Typography>
-          <Typography mb={1}>Works. Well.</Typography>
+          <Typography mb={1}>Workday, Greenhouse, and standard company application forms.</Typography>
           <Typography mb={1}>Completely free, No login required.</Typography>
           <Typography mb={1}>
-            Your data is stored locally, on your browser and isn't sent{' '}
-            <em>anywhere</em>.
+            Your saved answers stay in your browser. Autofill places matching answers in the website's form.
           </Typography>
           <Divider sx={{ my: 2 }} />
           <Box my={1}>

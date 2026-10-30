@@ -61,7 +61,8 @@ export const ContextProvider: FC<{
     ;(async () => {
       await editableAnswerState.init()
       await refresh()
-      await handleFill()
+      await backend.autoFill()
+      await refresh()
     })()
     backend.element.addEventListener(backend.reactMessageEventId, refresh)
     return () => {
