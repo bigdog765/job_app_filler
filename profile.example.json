@@ -1,0 +1,19 @@
+{
+  "entries": [
+    { "labels": ["First Name", "Given Name", "Legal First Name"], "value": "" },
+    { "labels": ["Last Name", "Family Name", "Surname", "Legal Last Name"], "value": "" },
+    { "labels": ["Full Name", "Legal Name"], "value": "" },
+    { "labels": ["Preferred Name", "Preferred First Name"], "value": "" },
+    { "labels": ["Email", "Email Address"], "value": "" },
+    { "labels": ["Phone", "Phone Number", "Mobile Phone Number"], "value": "" },
+    { "labels": ["Address Line 1", "Street Address"], "value": "" },
+    { "labels": ["Address Line 2", "Apartment, Suite, etc."], "value": "" },
+    { "labels": ["City", "Town"], "value": "" },
+    { "labels": ["State", "Province", "State/Province"], "value": "" },
+    { "labels": ["Postal Code", "Zip Code", "Zip/Postal Code"], "value": "" },
+    { "labels": ["Country", "Country/Region"], "value": "" },
+    { "labels": ["LinkedIn", "LinkedIn Profile", "LinkedIn URL"], "value": "" },
+    { "labels": ["Website", "Personal Website", "Portfolio", "Portfolio URL"], "value": "" },
+    { "labels": ["GitHub", "GitHub URL", "GitHub Profile"], "value": "" }
+  ]
+}

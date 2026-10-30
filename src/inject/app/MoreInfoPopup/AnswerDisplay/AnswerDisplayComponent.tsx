@@ -65,7 +65,7 @@ export const AnswerDisplayComponent: FC<{ id: number }> = ({ id }) => {
               )}
             </Box>
             <Box>
-              {!isNew && (
+              {!isNew && originalAnswer.source !== 'localProfile' && (
                 <ConfirmButton
                   component="IconButton"
                   action={() => deleteAnswer(id)}
@@ -137,6 +137,12 @@ export const AnswerDisplayComponent: FC<{ id: number }> = ({ id }) => {
         </Grid>
 
         <Grid item>
+          {originalAnswer.source === 'localProfile' && (
+            <Typography variant="caption" component="p">
+              From your local profile. Saving edits creates a Chrome override.
+              To remove this fallback, edit profile.local.json and rebuild.
+            </Typography>
+          )}
           <backend.answerValue.displayComponent id={id} />
         </Grid>
       </Grid>

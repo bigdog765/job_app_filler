@@ -28,6 +28,13 @@ folder in the package and hitting ok.
 
 ![how to load unpacked](https://github.com/berellevy/job_app_filler/blob/main/docs/load_unpacked.gif)
 
+## Local master profile
+
+Use the git-ignored `profile.local.json` to supply fallback answers when Chrome
+storage has no match. Copy `profile.example.json` if the local file is missing,
+then fill in your values. See [local profile setup](docs/local-profile.md) for
+matching rules, supported values, and build instructions.
+
 ## Project layout
 
 Because autofilling fields isn't always simple, the project structure is a bit complicated.

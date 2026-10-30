@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Application — Demo</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #202534;
+      background: #f3f5f9;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 44px 18px; }
+    .container { max-width: 850px; margin: auto; }
+    .header { margin-bottom: 26px; }
+    .eyebrow { text-transform: uppercase; letter-spacing: .13em; font-weight: 700; font-size: 12px; color: #4b5bbb; }
+    h1 { font-size: clamp(30px, 5vw, 42px); margin: 8px 0; letter-spacing: -.03em; }
+    .intro { color: #666e7d; max-width: 620px; margin-bottom: 0; line-height: 1.5; }
+    form { background: white; border: 1px solid #e1e6ef; box-shadow: 0 12px 35px #26365a0a; border-radius: 18px; overflow: hidden; }
+    fieldset { border: 0; border-bottom: 1px solid #e9ecf2; padding: 28px 32px 32px; margin: 0; }
+    legend { display: block; float: left; width: 100%; font-size: 19px; font-weight: 750; margin-bottom: 19px; letter-spacing: -.01em; }
+    .grid { clear: both; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+    .full { grid-column: 1 / -1; }
+    label { font-weight: 600; display: block; font-size: 14px; margin-bottom: 8px; }
+    .optional { font-weight: 400; color: #7c8492; }
+    input, select, textarea { display: block; width: 100%; border: 1px solid #cdd4e0; background: #fff; border-radius: 9px; padding: 12px 13px; font: inherit; font-size: 15px; color: inherit; }
+    input:focus, select:focus, textarea:focus { outline: 3px solid #dde4ff; border-color: #596bcc; }
+    textarea { min-height: 104px; resize: vertical; }
+    input[type="file"] { padding: 10px; }
+    input[type="checkbox"] { width: auto; accent-color: #4d5fc6; }
+    .hint { color: #747d8a; font-size: 12px; margin: 7px 0 0; line-height: 1.4; }
+    .required { color: #ad4052; }
+    .checkline { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; font-weight: 400; line-height: 1.5; margin: 0; }
+    .checkline input { margin-top: 4px; flex-shrink: 0; }
+    .footer { padding: 26px 32px 30px; }
+    .actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .demo-note { font-size: 13px; color: #697181; max-width: 380px; margin: 0; }
+    button { border: 0; background: #495bc0; color: white; border-radius: 10px; font-size: 15px; font-weight: 700; padding: 14px 22px; cursor: pointer; }
+    button:hover { background: #384aaa; }
+    .confirmation { margin-top: 18px; padding: 14px 16px; background: #e9f5ec; border: 1px solid #abd5b3; border-radius: 9px; color: #215d36; }
+    .confirmation[hidden] { display: none; }
+    @media (max-width: 620px) {
+      body { padding: 20px 12px; }
+      .grid { grid-template-columns: 1fr; }
+      .full { grid-column: auto; }
+      fieldset { padding: 24px 20px 26px; }
+      .footer { padding: 23px 20px; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div class="eyebrow">Careers · Sample form</div>
+      <h1>Job Application</h1>
+      <p class="intro">Tell us a little about yourself and your experience. Fields marked <span class="required">*</span> are required. This is a demonstration only.</p>
+    </header>
+
+    <form id="applicationForm" enctype="multipart/form-data">
+      <fieldset>
+        <legend>1. Personal information</legend>
+        <div class="grid">
+          <div><label for="firstName">First name <span class="required">*</span></label><input id="firstName" name="firstName" autocomplete="given-name" required /></div>
+          <div><label for="lastName">Last name <span class="required">*</span></label><input id="lastName" name="lastName" autocomplete="family-name" required /></div>
+          <div><label for="email">Email address <span class="required">*</span></label><input type="email" id="email" name="email" autocomplete="email" placeholder="name@example.com" required /></div>
+          <div><label for="phone">Phone number <span class="required">*</span></label><input type="tel" id="phone" name="phone" autocomplete="tel" required /></div>
+          <div><label for="city">City <span class="required">*</span></label><input id="city" name="city" autocomplete="address-level2" required /></div>
+          <div><label for="state">State / Province <span class="required">*</span></label><input id="state" name="state" autocomplete="address-level1" required /></div>
+          <div><label for="linkedin">LinkedIn profile <span class="optional">(optional)</span></label><input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/..." /></div>
+          <div><label for="portfolio">Website / Portfolio <span class="optional">(optional)</span></label><input type="url" id="portfolio" name="portfolio" placeholder="https://..." /></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2. Position and availability</legend>
+        <div class="grid">
+          <div><label for="position">Position applying for <span class="required">*</span></label><input id="position" name="position" placeholder="e.g. Customer Service Associate" required /></div>
+          <div><label for="jobType">Employment type <span class="required">*</span></label><select id="jobType" name="jobType" required><option value="" selected disabled>Select an option</option><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Temporary</option><option>Internship</option></select></div>
+          <div><label for="startDate">Earliest available start date <span class="required">*</span></label><input type="date" id="startDate" name="startDate" required /></div>
+          <div><label for="salary">Desired salary / hourly rate <span class="optional">(optional)</span></label><input id="salary" name="salary" placeholder="e.g. $25/hour or $55,000/year" /></div>
+          <div><label for="workAuth">Are you legally authorized to work in this country? <span class="required">*</span></label><select id="workAuth" name="workAuth" required><option value="" selected disabled>Select an option</option><option>Yes</option><option>No</option></select></div>
+          <div><label for="sponsorship">Will you require employment visa sponsorship now or in the future? <span class="required">*</span></label><select id="sponsorship" name="sponsorship" required><option value="" selected disabled>Select an option</option><option>Yes</option><option>No</option></select></div>
+          <div class="full"><label for="referral">How did you hear about this opportunity? <span class="optional">(optional)</span></label><select id="referral" name="referral"><option value="">Select an option</option><option>Company website</option><option>LinkedIn</option><option>Indeed / Job board</option><option>Employee referral</option><option>Career fair</option><option>Other</option></select></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. Work experience and education</legend>
+        <div class="grid">
+          <div><label for="employer">Most recent employer <span class="optional">(optional)</span></label><input id="employer" name="employer" placeholder="Company name" /></div>
+          <div><label for="recentTitle">Most recent job title <span class="optional">(optional)</span></label><input id="recentTitle" name="recentTitle" placeholder="Job title" /></div>
+          <div><label for="experience">Total years of work experience <span class="required">*</span></label><select id="experience" name="experience" required><option value="" selected disabled>Select an option</option><option>None / Entry level</option><option>Less than 1 year</option><option>1–2 years</option><option>3–5 years</option><option>6–10 years</option><option>10+ years</option></select></div>
+          <div><label for="education">Highest level of education completed <span class="required">*</span></label><select id="education" name="education" required><option value="" selected disabled>Select an option</option><option>High school / GED</option><option>Some college</option><option>Associate degree</option><option>Bachelor's degree</option><option>Master's degree</option><option>Doctorate / Professional degree</option><option>Other / Prefer not to say</option></select></div>
+          <div class="full"><label for="skills">Relevant skills or qualifications <span class="optional">(optional)</span></label><textarea id="skills" name="skills" placeholder="Briefly describe the skills you would bring to this role..."></textarea></div>
+          <div class="full"><label for="interest">Why are you interested in this position? <span class="required">*</span></label><textarea id="interest" name="interest" placeholder="Tell us why you would be a good fit..." required></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>4. Supporting materials</legend>
+        <div class="grid">
+          <div class="full"><label for="resume">Upload resume <span class="required">*</span></label><input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx" required /><p class="hint">PDF, DOC, or DOCX. Files stay in your browser in this demo.</p></div>
+          <div class="full"><label for="coverLetter">Cover letter or additional information <span class="optional">(optional)</span></label><textarea id="coverLetter" name="coverLetter" placeholder="Anything else you would like us to know?"></textarea></div>
+        </div>
+      </fieldset>
+
+      <div class="footer">
+        <label class="checkline" for="certify"><input type="checkbox" id="certify" name="certify" required /><span>I confirm that the information provided in this application is accurate to the best of my knowledge. <span class="required">*</span></span></label>
+        <div class="actions" style="margin-top: 24px;">
+          <p class="demo-note">Demo form only. Clicking submit validates the fields but does not save, upload, or send your information.</p>
+          <button type="submit">Submit application</button>
+        </div>
+        <div id="confirmation" class="confirmation" role="status" aria-live="polite" hidden>✓ Demo submission successful! Your form passed validation. No information was sent or stored.</div>
+      </div>
+    </form>
+  </main>
+  <script>
+    const form = document.getElementById('applicationForm');
+    const confirmation = document.getElementById('confirmation');
+    form.addEventListener('submit', (event) => {
+      event.preventDefault(); // Demo only: never transmit data.
+      if (!form.reportValidity()) return;
+      confirmation.hidden = false;
+      confirmation.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    form.addEventListener('input', () => { confirmation.hidden = true; });
+    form.addEventListener('change', () => { confirmation.hidden = true; });
+  </script>
+</body>
+</html>

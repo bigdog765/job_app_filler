@@ -56,8 +56,9 @@ export class CheckboxBoolean extends GreenhouseReactBaseInput<any> {
       const answers = await this.answer()
       if (answers.length > 0) {
         const firstAnswer = answers[0].answer
-        if (!(this.currentValue === firstAnswer)) {
-          this.checkboxWrapper.check()
+        if (this.currentValue() !== firstAnswer) {
+          if (firstAnswer) this.checkboxWrapper.check()
+          else this.checkboxWrapper.uncheck()
         }
       }
     })

@@ -67,7 +67,8 @@ export const useEditableAnswerState = (
     isNew = false,
     editable = false
   ) => {
-    const id = isNew ? newAnswerKeyCounter-- : originalAnswer.id
+    const id = isNew || originalAnswer.source === 'localProfile'
+      ? newAnswerKeyCounter-- : originalAnswer.id
     return {
       id,
       originalAnswer,
@@ -157,15 +158,20 @@ export const useEditableAnswerState = (
   }
 
   const saveAnswer: EditableAnswerState['saveAnswer'] = async (id) => {
-    const { editedAnswer, isNew } = answers.find((a) => a.id === id)
+    const { editedAnswer, isNew, originalAnswer } = answers.find((a) => a.id === id)
+    const isProfile = originalAnswer.source === 'localProfile'
     const answerForSave = {
       answer: backend.answerValue.prepForSave(editedAnswer.value),
       path: editedAnswer.path,
     }
-    const method = isNew ? 'addAnswer' : 'updateAnswer'
-    const answer = isNew ? { ...answerForSave } : { ...answerForSave, id }
+    const method = isNew || isProfile ? 'addAnswer' : 'updateAnswer'
+    const answer = isNew || isProfile ? { ...answerForSave } : { ...answerForSave, id }
     const resp = await contentScriptAPI.send(method, answer)
     if (resp.ok) {
+      if (isProfile) {
+        await init()
+        return
+      }
       const newAnswer = initAnswer(resp.data)
       setAnswers((answers) => {
         let updatedAnswers = [...answers]

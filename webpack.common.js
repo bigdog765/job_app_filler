@@ -1,4 +1,5 @@
 const path = require('path')
+const fs = require('fs')
 const CopyPlugin = require('copy-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
@@ -52,6 +53,9 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
       "@src": path.resolve(__dirname, "src"),
+      'local-profile$': path.resolve(__dirname,
+        fs.existsSync(path.resolve(__dirname, 'profile.local.json'))
+          ? 'profile.local.json' : 'profile.example.json'),
     },
   },
   output: {

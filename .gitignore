@@ -5,3 +5,4 @@ package-lock.json
 releases
 .DS_Store
 .vscode
+/profile.local.json
