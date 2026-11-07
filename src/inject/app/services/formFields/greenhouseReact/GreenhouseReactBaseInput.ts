@@ -1,4 +1,4 @@
-import { createRoot } from 'react-dom/client'
+import { createFieldIndicatorRoot } from '../../../FieldWidget/fieldIndicatorRoot'
 import { BaseFormInput } from '../baseFormInput'
 import { getElement } from '@src/shared/utils/getElements'
 
@@ -21,9 +21,8 @@ export abstract class GreenhouseReactBaseInput<
     return this.sectionElement()?.getAttribute("jaf-section") || ""
   }
   attachReactApp(app: React.ReactNode, inputContainer: HTMLElement): void {
-    const rootElement = document.createElement('div')
-    rootElement.classList.add('jaf-widget')
-    this.labelDisplayElement.insertAdjacentElement('afterend', rootElement)
-    createRoot(rootElement).render(app)
+    const { host, root } = createFieldIndicatorRoot(inputContainer.ownerDocument)
+    this.labelDisplayElement.insertAdjacentElement('afterend', host)
+    root.render(app)
   }
 }

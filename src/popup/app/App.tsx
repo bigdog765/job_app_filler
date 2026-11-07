@@ -17,6 +17,7 @@ import { ThemeProvider } from '@emotion/react'
 import { theme } from '@src/shared/utils/react'
 import { ContentCopyIcon, GitHubIcon, OpenInNewIcon } from '@src/shared/utils/icons'
 import { LogoTitleBar } from '@src/shared/components/LogoTitleBar'
+import { ProfileReview } from './ProfileReview'
 
 const EMAIL_ADDRESS = 'berellevy+chromeextensions@gmail.com'
 
@@ -64,6 +65,7 @@ export const App: FC<{}> = () => {
           <Typography variant="body2" sx={{ my: 1 }}>
             Application forms fill automatically. Use this button if a company form is not detected.
           </Typography>
+          <ProfileReview />
           <Stack direction={'row'} spacing={1}>
             <Button
               variant="outlined"

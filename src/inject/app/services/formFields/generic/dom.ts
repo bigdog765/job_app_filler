@@ -120,6 +120,10 @@ export function isApplicationForm(container: Element): boolean {
   ].filter(Boolean).join(' '))
   const applicationContext = /\b(job application|employment application|application form|apply for|apply now)\b/i.test(context)
   if (/\b(newsletter|subscribe|search|sign in|log in)\b/i.test(context)) return false
+  // Multi-step applications may show only employment fields on this page.
+  const workHeading = Array.from(container.querySelectorAll('h1,h2,h3,h4,h5,h6,legend,[role="heading"]'))
+    .some((node) => /^(?:work experience|professional experience|employment history|work history)(?:\s*\d+)?$/i.test(normalize(node.textContent || '')))
+  if (workHeading && labels.some((label) => /^(?:job title|role title|position title|what (?:is|was) your job title)$/.test(label.replace(/\?$/, '')))) return true
   return controls.length >= 2 && ((identityCount >= 1 && jobField) ||
     (applicationContext && (identityCount >= 1 || jobField)))
 }
@@ -131,7 +135,7 @@ export function discoverControls(document: Document, force = false): Control[] {
   if (!containers.length && document.body) containers.push(document.body)
   const found = new Set<Control>()
   for (const container of containers) {
-    if (container.closest(uiSelector) || container.querySelector('input[type="password"]')) continue
+    if (container.closest(uiSelector) || (!force && container.querySelector('input[type="password"]'))) continue
     if (!force && !isApplicationForm(container)) continue
     for (const control of Array.from(container.querySelectorAll<Control>(controlSelector))) {
       if (!isUsable(control) || !fieldLabel(control) || isConsent(control)) continue

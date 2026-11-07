@@ -1,4 +1,3 @@
-import { getElement } from '@src/shared/utils/getElements'
 import { AddressSearchable } from './AddressSearchable'
 import { CheckboxBoolean } from './CheckboxBoolean'
 import { CheckboxMulti } from './CheckboxMulti'
@@ -9,12 +8,9 @@ import { NumberInput } from './NumberInput'
 import { Section } from './Section'
 import { Textarea } from './Textarea'
 import { TextInput } from './TextInput'
+import { getReactProps } from '../utils'
 
-/** Not present in job search page */
-const applicationContainerElement = getElement(
-  document,
-  `.//div[@class="application--container"]`
-)
+let hydrationRetry: ReturnType<typeof setTimeout>
 
 const inputs = [
   TextInput,
@@ -29,8 +25,19 @@ const inputs = [
 ]
 
 export const RegisterInputs = async (node: Node = document) => {
+  // Greenhouse serves the fields as HTML before React attaches its handlers.
+  // Adding widgets/filling at that point can be undone by hydration. Hydration
+  // attaches JS properties without a DOM mutation, so explicitly retry it.
+  clearTimeout(hydrationRetry)
+  const applicationContainerElement = document.querySelector('.application--container')
   if (applicationContainerElement) {
+    const textControls = Array.from(applicationContainerElement.querySelectorAll<HTMLElement>(
+      '.text-input-wrapper input, .text-input-wrapper textarea'))
+    if (textControls.some((control) => !getReactProps(control))) {
+      hydrationRetry = setTimeout(() => { RegisterInputs(document).catch(console.error) }, 200)
+      return
+    }
     await Section.autoDiscover(node)
-    Promise.all(inputs.map((i) => i.autoDiscover(node)))
+    await Promise.all(inputs.map((i) => i.autoDiscover(node)))
   }
 }

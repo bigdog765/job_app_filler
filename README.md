@@ -167,3 +167,5 @@ This is a rough outlook of what's to come. For more specifics, see issues.
 ## Changelog 
 
 See CHANGELOG.md
+
+<!-- Test change: README editing verified. -->

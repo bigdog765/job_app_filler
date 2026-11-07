@@ -1,5 +1,6 @@
 import React from 'react'
-import { createRoot, Root } from 'react-dom/client'
+import type { Root } from 'react-dom/client'
+import { createFieldIndicatorRoot } from '../../../FieldWidget/fieldIndicatorRoot'
 import { BaseFormInput, AnswerValueMethods } from '../baseFormInput'
 import { AnswerValueBackupStrings } from '../../../MoreInfoPopup/AnswerDisplay/AnswerValueDisplay/AnswerValueBackupStrings'
 import { AnswerValueSingleBool } from '../../../MoreInfoPopup/AnswerDisplay/AnswerValueDisplay/AnswerValueSingleBool'
@@ -7,7 +8,7 @@ import { AnswerValueSingleDate } from '../../../MoreInfoPopup/AnswerDisplay/Answ
 import { answerValueInitList } from '../../../hooks/answerValueInit'
 import {
   Control, controlType, currentValue, fieldLabel, fieldSection, fillControl,
-  isEmpty, isUsable, radioControls,
+  isUsable, radioControls,
 } from './dom'
 
 export class GenericInput extends BaseFormInput<any> {
@@ -15,6 +16,8 @@ export class GenericInput extends BaseFormInput<any> {
   private root: Root
   private widget: HTMLElement
   private touched = false
+  private fillingAutomatically = false
+  preventAutoFill?: () => boolean
   private listeners: Array<() => void>
 
   get control(): Control { return this.element as Control }
@@ -42,11 +45,10 @@ export class GenericInput extends BaseFormInput<any> {
   attachReactApp(app: React.ReactNode) {
     // Do not move the site's input or place extension buttons inside its label.
     const anchor = this.control.closest('label') || this.control
-    this.widget = this.element.ownerDocument.createElement('div')
-    this.widget.className = 'jaf-widget'
-    this.widget.setAttribute('data-jaf-ui', '')
+    const { host, root } = createFieldIndicatorRoot(this.element.ownerDocument)
+    this.widget = host
     anchor.insertAdjacentElement('afterend', this.widget)
-    this.root = createRoot(this.widget)
+    this.root = root
     this.root.render(app)
   }
 
@@ -80,10 +82,17 @@ export class GenericInput extends BaseFormInput<any> {
   }
 
   async autoFill(): Promise<void> {
-    if (this.touched || !isUsable(this.control) || !isEmpty(this.control)) return
-    const answers = await this.answer()
-    // The user may have typed while Chrome storage was being read.
-    if (!this.touched && isEmpty(this.control)) fillControl(this.control, answers.map((answer) => answer.answer))
+    if (this.fillingAutomatically || this.touched || this.preventAutoFill?.() || !isUsable(this.control)) return
+    this.fillingAutomatically = true
+    const before = JSON.stringify(this.fieldSnapshot)
+    try {
+      // Use the same saved/profile answer lookup as the wand, including when
+      // the website has already populated an old value or a default option.
+      const answers = await this.answer()
+      if (!this.touched && !this.preventAutoFill?.() && before === JSON.stringify(this.fieldSnapshot)) {
+        fillControl(this.control, answers.map((answer) => answer.answer))
+      }
+    } finally { this.fillingAutomatically = false }
   }
 
   async fill(): Promise<void> {

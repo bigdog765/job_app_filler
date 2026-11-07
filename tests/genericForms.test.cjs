@@ -203,7 +203,7 @@ test('handles native month and date inputs without clearing fields on invalid an
   assert.equal(document.getElementById('date').value, '2023-08-10')
 })
 
-test('generic automatic filling preserves populated values and edits made during lookup', async () => {
+test('generic automatic filling uses wand answers for populated fields and preserves edits during lookup', async () => {
   class Base {
     constructor(element) { this.element = element; this.listenForChanges() }
     triggerReactUpdate() {}
@@ -215,16 +215,18 @@ test('generic automatic filling preserves populated values and edits made during
     '../../../MoreInfoPopup/AnswerDisplay/AnswerValueDisplay/AnswerValueSingleBool': component,
     '../../../MoreInfoPopup/AnswerDisplay/AnswerValueDisplay/AnswerValueSingleDate': component,
     '../../../hooks/answerValueInit': { answerValueInitList: (values) => values.map((v) => [v, false]) },
+    '../../../FieldWidget/fieldIndicatorRoot': {},
     './dom': dom,
   })
   const document = documentFor(field('name', 'Name'))
   const control = document.getElementById('name')
-  const backend = new GenericInput(control)
+  let backend = new GenericInput(control)
   backend.answer = async () => [{ answer: 'From profile' }]
   control.value = 'Already entered'
   await backend.autoFill()
-  assert.equal(control.value, 'Already entered')
+  assert.equal(control.value, 'From profile')
   control.value = ''
+  backend = new GenericInput(control)
   let finish
   backend.answer = () => new Promise((resolve) => { finish = resolve })
   const pending = backend.autoFill()
@@ -236,6 +238,14 @@ test('generic automatic filling preserves populated values and edits made during
   backend.answer = async () => [{ answer: 'Manual replacement' }]
   await backend.fill()
   assert.equal(control.value, 'Manual replacement')
+  const checkbox = document.createElement('input')
+  checkbox.type = 'checkbox'
+  document.body.appendChild(checkbox)
+  const checkboxBackend = new GenericInput(checkbox)
+  checkboxBackend.answer = async () => [{ answer: true }]
+  checkboxBackend.preventAutoFill = () => true
+  await checkboxBackend.autoFill()
+  assert.equal(checkbox.checked, false, 'An inferred false must not be replaced by a stale Chrome true')
 })
 
 test('isolated generic transport never dispatches the page-event client', async () => {
@@ -254,6 +264,7 @@ test('observes dynamically inserted fields, avoids duplicate widgets, and cleans
   const disposed = []
   class MockInput {
     constructor(control) { this.control = control; constructed.push(control.id) }
+    async autoFill() {}
     dispose() { disposed.push(this.control.id) }
   }
   const { startGenericForms } = loadTs('src/inject/app/services/formFields/generic/index.ts', {
@@ -287,6 +298,8 @@ test('generic content-script bootstrap never exposes the storage bridge or injec
     './app/App': { loadApp() {}, EVENT_LISTENER_ID: 'test' },
     './utils/storage/answerService': { answerRequest, prepareAnswers: async () => { prepared++ } },
     '@src/inject/app/services/formFields/generic': { startGenericForms() { started++; return { enable: async () => 0 } } },
+    '@src/inject/app/services/formFields/generic/profileReview': { createProfileReview() { return {} } },
+    '@src/inject/app/services/formFields/generic/profileAutofill': { createProfileAutofill() { return {} } },
     '@src/inject/app/services/contentScriptApi': { setLocalTransport(value) { transport = value } },
   }, { window: document.defaultView, document, chrome: { runtime: { onMessage: { addListener() {} } } } })
   assert.equal(started, 1)

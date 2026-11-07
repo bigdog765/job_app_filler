@@ -24,7 +24,7 @@ function getElement(element, xpath) {
   return element.ownerDocument.evaluate(xpath, element, null, 9, null).singleNodeValue
 }
 const { WorkdayBaseInput } = loadTs('src/inject/app/services/formFields/workday/WorkdayBaseInput.ts', {
-  'react-dom/client': {},
+  '../../../FieldWidget/fieldIndicatorRoot': {},
   '@src/shared/utils/getElements': { getElement },
   '../baseFormInput': { BaseFormInput: class {} },
   './sectionHeading': sectionHeading,

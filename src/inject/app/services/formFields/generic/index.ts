@@ -2,7 +2,8 @@ import { GenericInput } from './GenericInput'
 import { Control, discoverControls, isUsable } from './dom'
 
 /** Observe dynamic forms without rescanning on every keystroke or widget render. */
-export function startGenericForms(document: Document, prepare: () => Promise<void>) {
+export function startGenericForms(document: Document, prepare: () => Promise<void>,
+  inference?: { fill: (controls: Control[]) => Promise<void>; stop: () => void; protects: (control: Control) => boolean }) {
   const registered = new Map<Control, GenericInput>()
   let forced = false
   let timer: ReturnType<typeof setTimeout>
@@ -21,11 +22,17 @@ export function startGenericForms(document: Document, prepare: () => Promise<voi
         }
       }
       const controls = discoverControls(document, forced)
+      if (controls.length && inference) await inference.fill(controls)
       if (controls.length) await prepare()
       for (const control of controls) {
         if (!registered.has(control) && isUsable(control)) {
-          registered.set(control, new GenericInput(control))
+          const backend = new GenericInput(control)
+          backend.preventAutoFill = () => inference?.protects(control) || false
+          registered.set(control, backend)
         }
+        // Retry when a site's asynchronous options/fields appear. The backend
+        // guards completed fills, edits, and concurrent React initialization.
+        await registered.get(control)?.autoFill()
       }
       return registered.size
     })()
@@ -50,6 +57,7 @@ export function startGenericForms(document: Document, prepare: () => Promise<voi
     stop: () => {
       clearTimeout(timer)
       observer.disconnect()
+      inference?.stop()
       registered.forEach((backend) => backend.dispose())
       registered.clear()
     },

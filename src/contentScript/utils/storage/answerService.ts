@@ -4,6 +4,7 @@ import { SavedAnswer } from './DataStoreTypes'
 import { migrateEducation } from './migrateEducationSectionNames'
 import localProfile from 'local-profile'
 import { answersWithProfileFallback } from './profileFallback'
+import { profileSuggestion } from './profileSuggestions'
 
 let ready: Promise<void>
 export function prepareAnswers(): Promise<void> {
@@ -16,6 +17,7 @@ export function prepareAnswers(): Promise<void> {
 }
 
 export async function answerRequest(method: string, data: any): Promise<any> {
+  if (method === 'getProfileSuggestion') return profileSuggestion(data, localProfile)
   await prepareAnswers()
   switch (method) {
     case 'addAnswer':

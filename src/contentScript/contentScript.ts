@@ -5,15 +5,31 @@ import { EVENT_LISTENER_ID, loadApp } from './app/App'
 import { answerRequest, prepareAnswers } from './utils/storage/answerService'
 import { startGenericForms } from '@src/inject/app/services/formFields/generic'
 import { setLocalTransport } from '@src/inject/app/services/contentScriptApi'
+import { createProfileReview } from '@src/inject/app/services/formFields/generic/profileReview'
+import { createProfileAutofill } from '@src/inject/app/services/formFields/generic/profileAutofill'
 
 const specialized = getSiteAdapter(window.location.hostname) !== 'generic'
 let generic: ReturnType<typeof startGenericForms>
 let appLoaded = false
+const profileReview = createProfileReview(document, (path) => answerRequest('getProfileSuggestion', path))
 function ensureApp() {
   if (!appLoaded) { loadApp(); appLoaded = true }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'REVIEW_PROFILE' || message.type === 'APPLY_PROFILE_UPDATES') {
+    if (specialized) { sendResponse({ ok: false, specialized: true }); return }
+    Promise.resolve().then(async () => {
+      if (message.type === 'REVIEW_PROFILE') {
+        await generic.enable()
+        return profileReview.scan()
+      }
+      return profileReview.apply(Array.isArray(message.ids) ? message.ids : [])
+    })
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch(() => sendResponse({ ok: false }))
+    return true
+  }
   if (message.type === 'SHOW_WHATS_NEW') {
     ensureApp()
     setTimeout(() => document.dispatchEvent(new CustomEvent(EVENT_LISTENER_ID)), 100)
@@ -33,7 +49,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function run() {
   if (!specialized) {
     setLocalTransport(answerRequest)
-    generic = startGenericForms(document, prepareAnswers)
+    generic = startGenericForms(document, prepareAnswers,
+      createProfileAutofill(document, (path) => answerRequest('getProfileSuggestion', path)))
     return
   }
   // Only ATS host patterns need page-context access to React internals.

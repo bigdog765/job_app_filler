@@ -31,8 +31,8 @@ asterisks (including Unicode markers such as Lever's `✱`), colons, and
 wording; the profile does not guess answers from similar questions.
 
 Optional `sections` and `fieldTypes` arrays restrict an entry. For repeated
-education or employment fields, use `sections` with the exact section names shown
-in the extension's field information. Put specific entries before general ones.
+education or employment fields, use numbered sections such as `Work Experience 1`
+and `Education 1`. Put specific entries before general ones.
 Without these restrictions, an entry applies to matching labels across sections
 and supported sites.
 
@@ -49,7 +49,7 @@ Supported values:
 | `MonthYear` | A month/year pair such as `["08", "2023"]` |
 
 Full dates requiring a day continue to use Chrome-saved answers. Generic native
-date fields use `DateInput` with a `YYYY-MM-DD` string when saved through the UI.
+date fields use existing `DateInput` answers with a `YYYY-MM-DD` string.
 The profile does not supply full dates, passwords, or files. Generic forms skip
 password and upload fields entirely.
 Use `fieldTypes` to restrict month/year pairs to `MonthYear`, so they are not
@@ -58,24 +58,31 @@ their numbered sections; do not invent a day when only the month is known.
 
 ## Using changes
 
+Parsed fields display a small teal check icon. It acknowledges field detection,
+not successful filling. The old per-field logo, wand, save button, and answer
+popup are no longer displayed. Autofill runs automatically; use the extension
+popup's **Review profile updates** for supported generic forms. Edit the local
+profile to maintain your fallback answers.
+
 Run `npm start`, then load/reload `dist/` at `chrome://extensions/` and refresh the
 application page. Changes to an existing profile trigger a rebuild in watch mode.
 Restart Webpack after creating or removing the local file. For a single production
 build, use `npx webpack --config webpack.prod.js`.
 
-The extension uses Chrome's existing answer search first (including similar-name
-matches). Only when that search returns no answers does it consult this profile.
-Profile values use the existing automatic filling and manual Fill controls on
+Per-field saved-answer lookup uses Chrome's existing answer search first
+(including similar-name matches), with the profile as a fallback. Generic company
+forms additionally run profile inference first, as described below.
+Profile values use automatic filling on
 supported Workday, Greenhouse, and ordinary company application forms. Generic
 forms are detected automatically or enabled from the extension popup. Generic
-automatic filling preserves existing values and excludes consent fields. A
+inference replaces prefilled values when the local profile matches, preserves
+edits made after the extension starts, and excludes consent fields. A
 company form's unnumbered sections use an empty section; numbered work/education
 headings keep their section names so repeated entries remain separate.
 
-Fallbacks are labeled **Local profile** in the answer UI and are not automatically
-copied into Chrome storage. Editing and saving one creates a Chrome override.
-To remove a fallback, clear or disable its local entry and rebuild. Removing a
-Chrome override lets the profile apply again when the answers are next loaded.
+Fallbacks are not automatically copied into Chrome storage. To change or remove
+a fallback, edit, clear or disable its local entry and rebuild. Previously saved
+Chrome answers remain available to automatic filling.
 
 The local profile is compiled into `dist/contentScript.js`, so local builds and
 release ZIPs contain your configured values even though the JSON is git-ignored.
@@ -84,3 +91,40 @@ restart/rebuild with the blank example. A checkout without the local file works
 normally with Chrome storage alone.
 
 Run `npm test` for fallback matching and Chrome-override regression checks.
+
+On React-based Greenhouse pages (`job-boards.greenhouse.io`), automatic text
+filling waits for the website's form handlers to attach. It briefly rechecks blank
+fields during initialization, so a late page reset does not require a wand click.
+Typing into a field stops these automatic retries for that field.
+
+## Reviewing outdated website answers
+
+On detected standard company forms, inferred matches from `profile.local.json`
+fill automatically, including replacing outdated prefilled values. New visible
+fields are checked as the form changes. Your subsequent edits are preserved.
+Use **Enable on this page** if a form is not detected. **Review profile updates**
+also enables automatic inference and shows remaining differences; select updates
+there to deliberately replace your own edits. Inference uses the local profile
+directly, even when Chrome contains older saved answers. It does not change saved
+Chrome answers or submit the form.
+
+Review uses local rules to infer field meanings from labels, section headings,
+and repeated record containers. For example, “Name of employer” and “Role title”
+under “Employment history” map to company and job title. Unnumbered employment
+and education records are numbered by their order on the page. Job-title fields
+can identify work records when employer controls are absent or unsupported;
+common questions such as “What was your job title?” resolve to the same meaning.
+The review explains when it inferred a record number. Check that each
+record lines up with your profile (newest first); this is not employer identity
+matching. Ambiguous fields remain unmatched. Fields without an inferred profile
+value automatically use Chrome-first answer lookup, even
+when a website has prefilled the field. Later edits are preserved. The extension
+retries untouched fields as dynamic controls or dropdown options appear.
+
+No external AI service is used. Review currently covers native controls on
+generic company forms in the main page. Dedicated Workday/Greenhouse adapters,
+embedded frames, custom dropdowns, hidden/collapsed sections, file uploads and
+passwords are outside this review flow. Expand existing work-history records
+before reviewing. Add missing records with the website's controls, then review
+again; review does not add or delete employment rows. Fields edited or reordered
+after a scan are skipped; run another review to use their new state.

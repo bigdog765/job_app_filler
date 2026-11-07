@@ -1,4 +1,4 @@
-import { createRoot } from 'react-dom/client'
+import { createFieldIndicatorRoot } from '../../../FieldWidget/fieldIndicatorRoot'
 import { getElement } from '@src/shared/utils/getElements'
 import { BaseFormInput } from '../baseFormInput'
 import { findRepeatedSectionHeading } from './sectionHeading'
@@ -13,9 +13,9 @@ export abstract class WorkdayBaseInput<
   ) {
     // cant just append the react app to the root element...
     // it makes the element disappear
-    const rootElement = document.createElement('div')
-    inputContainer.insertBefore(rootElement, inputContainer.lastChild)
-    createRoot(rootElement).render(app)
+    const { host, root } = createFieldIndicatorRoot(inputContainer.ownerDocument)
+    inputContainer.insertBefore(host, inputContainer.lastChild)
+    root.render(app)
   }
 
 

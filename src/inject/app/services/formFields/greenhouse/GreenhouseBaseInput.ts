@@ -1,4 +1,4 @@
-import { createRoot } from 'react-dom/client'
+import { createFieldIndicatorRoot } from '../../../FieldWidget/fieldIndicatorRoot'
 import { BaseFormInput, isRegistered, isVisible } from '../baseFormInput'
 import { getElement, getElements } from '@src/shared/utils/getElements'
 
@@ -41,14 +41,13 @@ export abstract class GreenhouseBaseInput<
    * Attach widget between label and field
    */
   attachReactApp(app: React.ReactNode, inputContainer: HTMLElement) {
-    const rootElement = document.createElement('div')
-    rootElement.classList.add("jaf-widget")
+    const { host, root } = createFieldIndicatorRoot(inputContainer.ownerDocument)
     if (this.inputDisplayElement) {
       this.inputDisplayElement()?.parentElement.insertBefore(
-        rootElement,
+        host,
         this.inputDisplayElement()
       )
-      createRoot(rootElement).render(app)
+      root.render(app)
     }
   }
 }
