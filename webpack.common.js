@@ -8,6 +8,7 @@ const uuid = require('uuid')
 
 const envKeys = {
   'process.env.CONTENT_SCRIPT_URL': `"${uuid.v4()}"`,
+  'process.env.JAF_BRIDGE_TOKEN': JSON.stringify(require('./server/bridgeToken.cjs')()),
 }
 
 module.exports = {

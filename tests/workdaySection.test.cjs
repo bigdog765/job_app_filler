@@ -19,6 +19,7 @@ function loadTs(file, imports = {}) {
 }
 
 const sectionHeading = loadTs('src/inject/app/services/formFields/workday/sectionHeading.ts')
+const { xpaths } = loadTs('src/inject/app/services/formFields/workday/xpaths.ts')
 const { answersWithProfileFallback } = loadTs('src/contentScript/utils/storage/profileFallback.ts')
 function getElement(element, xpath) {
   return element.ownerDocument.evaluate(xpath, element, null, 9, null).singleNodeValue
@@ -36,6 +37,21 @@ function backendFor(document, id) {
   return backend
 }
 const field = (id) => `<div id="${id}" data-automation-id="formField-jobTitle" job-app-filler="${id}"><label>Job Title*</label><input type="text"></div>`
+
+test('Workday discovers URL controls and matches the URL profile alias', () => {
+  const document = new JSDOM(`<form><h3>Websites</h3>
+    <div data-automation-id="formField-url" id="website"><label>URL</label><input type="url"></div>
+    <div data-automation-id="formField-password"><input type="password"></div>
+    <div data-automation-id="formField-custom"><input type="url" aria-haspopup="listbox"></div>
+  </form>`).window.document
+  const found = document.evaluate(xpaths.TEXT_INPUT, document, null, 7, null)
+  assert.equal(found.snapshotLength, 1)
+  assert.equal(found.snapshotItem(0).id, 'website')
+  const answers = answersWithProfileFallback([], {
+    fieldName: 'URL', fieldType: 'TextInput', section: 'Websites',
+  }, { entries: [{ labels: ['Portfolio', 'URL'], value: 'https://example.test' }] })
+  assert.equal(answers[0].answer, 'https://example.test')
+})
 
 test('detects h3 work-history headings when the legacy h4 XPath returns no section', () => {
   const document = new JSDOM(`<form><h2>Work Experience</h2>

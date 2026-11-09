@@ -1,7 +1,7 @@
 export const xpaths = {
   TEXT_INPUT: [
     `.//div[@class="text-input-wrapper"]`,
-    `[.//input[@type="text"]]`,
+    `[.//input[@type="text" or @type="tel" or @type="email" or @type="url"]]`,
   ].join(''),
 
   NUMBER_INPUT: [

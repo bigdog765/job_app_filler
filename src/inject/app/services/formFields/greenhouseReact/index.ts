@@ -9,6 +9,7 @@ import { Section } from './Section'
 import { Textarea } from './Textarea'
 import { TextInput } from './TextInput'
 import { getReactProps } from '../utils'
+import { getTextControl } from './textControl'
 
 let hydrationRetry: ReturnType<typeof setTimeout>
 
@@ -31,8 +32,10 @@ export const RegisterInputs = async (node: Node = document) => {
   clearTimeout(hydrationRetry)
   const applicationContainerElement = document.querySelector('.application--container')
   if (applicationContainerElement) {
+    // The phone widget adds a non-React country-search input inside the wrapper.
+    // Only the application's labeled control participates in hydration readiness.
     const textControls = Array.from(applicationContainerElement.querySelectorAll<HTMLElement>(
-      '.text-input-wrapper input, .text-input-wrapper textarea'))
+      '.text-input-wrapper')).map(getTextControl).filter(Boolean)
     if (textControls.some((control) => !getReactProps(control))) {
       hydrationRetry = setTimeout(() => { RegisterInputs(document).catch(console.error) }, 200)
       return

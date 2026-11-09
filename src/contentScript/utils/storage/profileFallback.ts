@@ -9,7 +9,7 @@ const normalize = (value: string) => value.normalize('NFKC').toLowerCase()
 const stringList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
 
-function adaptValue(value: unknown, fieldType: string): unknown {
+export function adaptValue(value: unknown, fieldType: string): unknown {
   switch (fieldType) {
     case 'Year':
       return typeof value === 'string' && /^[1-9]\d{3}$/.test(value) ? value : undefined

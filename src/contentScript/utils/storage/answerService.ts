@@ -5,6 +5,7 @@ import { migrateEducation } from './migrateEducationSectionNames'
 import localProfile from 'local-profile'
 import { answersWithProfileFallback } from './profileFallback'
 import { profileSuggestion } from './profileSuggestions'
+import { aiProfileAnswer } from './aiProfile'
 
 let ready: Promise<void>
 export function prepareAnswers(): Promise<void> {
@@ -17,7 +18,10 @@ export function prepareAnswers(): Promise<void> {
 }
 
 export async function answerRequest(method: string, data: any): Promise<any> {
-  if (method === 'getProfileSuggestion') return profileSuggestion(data, localProfile)
+  if (method === 'getProfileSuggestion') {
+    const local = profileSuggestion(data, localProfile)
+    return local !== undefined ? local : (await aiProfileAnswer(data, localProfile))[0]?.answer
+  }
   await prepareAnswers()
   switch (method) {
     case 'addAnswer':
@@ -25,8 +29,10 @@ export async function answerRequest(method: string, data: any): Promise<any> {
       return convert1010To106(answers1010.add(convert106To1010(data)))
     case 'updateAnswer':
       return convert1010To106(answers1010.update(convert106To1010(data) as SavedAnswer))
-    case 'getAnswer':
-      return answersWithProfileFallback(answers1010.search(data).map(convert1010To106), data, localProfile)
+    case 'getAnswer': {
+      const local = answersWithProfileFallback(answers1010.search(data).map(convert1010To106), data, localProfile)
+      return local.length ? local : aiProfileAnswer(data, localProfile)
+    }
     case 'deleteAnswer':
       return answers1010.delete(data)
     default:

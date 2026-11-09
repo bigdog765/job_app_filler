@@ -8,7 +8,7 @@ on tedious job sites such as workday, icims, etc.
 ### Features:
 
 - Open source.
-- User's data isn't sent _anywhere_.
+- Local matching runs in your browser. Optional OpenAI matching sends field and profile labels to OpenAI.
 
 ## Quickstart
 
@@ -34,6 +34,44 @@ Use the git-ignored `profile.local.json` to supply fallback answers when Chrome
 storage has no match. Copy `profile.example.json` if the local file is missing,
 then fill in your values. See [local profile setup](docs/local-profile.md) for
 matching rules, supported values, and build instructions.
+
+## Optional OpenAI profile matching
+
+The model is fixed to **gpt-6-luna**. Set **OPENAI_API_KEY** in the environment
+of the terminal running the local service, or copy `.env.example` to `.env` and
+fill it in. Then run `npm run ai:server` and leave that process running while you
+use AI matching. Requires Node.js 20+.
+
+Rebuild and reload the unpacked extension, then refresh the application page.
+The popup has an enable switch, status, and **Reset matching**, with no key or
+model entry. Chrome may request localhost access after this update.
+
+Saved answers and exact local matches take priority. For remaining fields, the
+model chooses an existing entry from `profile.local.json` by its labels and section;
+the extension fills the original value locally. It can decline ambiguous matches.
+This does not generate answers or translate profile values into different dropdown
+options; existing dropdown matching still applies.
+
+Only field labels, sections, field types, and eligible profile entry labels/sections
+are sent, never profile answer values. Labels themselves may contain personal data.
+Requests use `store: false`. API usage is billed to your OpenAI account. The key
+stays in the local Node service and is never stored in Chrome or compiled into
+extension bundles. The service binds only to `127.0.0.1:43187` and accepts
+requests authenticated by a local pairing token. Building or starting the service
+creates the git-ignored `.openai-bridge-token` automatically. If you delete this
+token, rebuild/reload the extension and restart the service to pair them again.
+Do not share the built extension or pairing-token file. The service calls only
+OpenAI's fixed Responses endpoint, limits requests, and does not enable website CORS.
+Existing keys saved by the earlier popup configuration are removed on startup.
+Restart the service after changing OPENAI_API_KEY; no extension rebuild is needed.
+
+Repeated matches are cached during the background worker's lifetime, with up to
+100 new requests per tab and 500 cache entries per worker session. API failures
+leave fields blank and display status in the popup. The enable switch disables AI;
+already populated values remain. Reloading the extension or restarting its worker
+resets these in-memory limits. These are safeguards, not an account spending cap.
+
+API integration: [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).
 
 ## Company website forms
 

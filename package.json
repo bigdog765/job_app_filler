@@ -4,6 +4,7 @@
   "description": "Elevated Autofill for those pesky job application sites.",
   "main": "index.js",
   "scripts": {
+    "ai:server": "node server/index.cjs",
     "test": "node --test tests/*.test.cjs",
     "start": "webpack --watch --progress --config webpack.dev.js",
     "build": "webpack --watch --progress --config webpack.prod.js",

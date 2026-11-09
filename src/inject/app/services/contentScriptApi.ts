@@ -12,7 +12,7 @@ export function setLocalTransport(transport: typeof localTransport) {
 
 export const contentScriptAPI = {
   async send<T = any>(method: string, data?: any): Promise<ResponseBody<T>> {
-    if (!localTransport) return client.send<T>(method, data)
+    if (!localTransport) return client.send<T>(method, data, method === 'getAnswer' ? 65000 : 5000)
     try { return { ok: true, data: await localTransport(method, data) } }
     catch { return { ok: false } }
   },

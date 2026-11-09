@@ -97,6 +97,7 @@ test('editing an employer invalidates other suggested fields in that employment 
 test('profile review does not consult stale Chrome answers', async () => {
   let reads = 0
   const { answerRequest } = loadTs('src/contentScript/utils/storage/answerService.ts', {
+    './aiProfile': { aiProfileAnswer: async () => [] },
     './Answers1010': { answers1010: { search() { reads++; return [{ answer: 'Stale' }] } } },
     './DataStore': {}, './DataStoreTypes': {}, './migrateEducationSectionNames': {},
     'local-profile': { default: profile, __esModule: true },

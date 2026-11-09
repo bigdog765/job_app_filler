@@ -188,7 +188,8 @@ test('Webpack uses the blank tracked template when a checkout has no local profi
   for (const exists of [false, true]) {
     const module = { exports: {} }
     new Function('require', 'module', '__dirname', source)(
-      (name) => name === 'fs' ? { existsSync: () => exists } : require(name), module, root
+      (name) => name === 'fs' ? { existsSync: () => exists } :
+        name === './server/bridgeToken.cjs' ? () => 'test-pairing-token' : require(name), module, root
     )
     assert.equal(module.exports.resolve.alias['local-profile$'],
       path.resolve(root, exists ? 'profile.local.json' : 'profile.example.json'))

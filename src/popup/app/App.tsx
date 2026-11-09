@@ -18,6 +18,7 @@ import { theme } from '@src/shared/utils/react'
 import { ContentCopyIcon, GitHubIcon, OpenInNewIcon } from '@src/shared/utils/icons'
 import { LogoTitleBar } from '@src/shared/components/LogoTitleBar'
 import { ProfileReview } from './ProfileReview'
+import { OpenAISettings } from './OpenAISettings'
 
 const EMAIL_ADDRESS = 'berellevy+chromeextensions@gmail.com'
 
@@ -66,6 +67,7 @@ export const App: FC<{}> = () => {
             Application forms fill automatically. Use this button if a company form is not detected.
           </Typography>
           <ProfileReview />
+          <OpenAISettings />
           <Stack direction={'row'} spacing={1}>
             <Button
               variant="outlined"
@@ -103,7 +105,7 @@ export const App: FC<{}> = () => {
             Features
           </Typography>
           <Typography mb={1}>Workday, Greenhouse, and standard company application forms.</Typography>
-          <Typography mb={1}>Completely free, No login required.</Typography>
+          <Typography mb={1}>Local autofill is free. Optional OpenAI matching uses your API account.</Typography>
           <Typography mb={1}>
             Your saved answers stay in your browser. Autofill places matching answers in the website's form.
           </Typography>

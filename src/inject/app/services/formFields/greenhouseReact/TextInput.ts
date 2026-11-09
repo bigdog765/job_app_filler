@@ -3,6 +3,7 @@ import { GreenhouseReactBaseInput } from "./GreenhouseReactBaseInput";
 import { xpaths } from "./xpaths";
 import { getReactProps } from "../utils";
 import { sleep } from '@src/shared/utils/async'
+import { getTextControl } from './textControl'
 
 
 
@@ -10,6 +11,7 @@ export class TextInput extends GreenhouseReactBaseInput<any> {
   static XPATH = xpaths.TEXT_INPUT
   fieldType = 'TextInput'
   private edited = false
+  private filling = false
   private automaticFill: Promise<void>
   
   get labelElement(): HTMLElement {
@@ -17,7 +19,7 @@ export class TextInput extends GreenhouseReactBaseInput<any> {
   }
 
   get inputElement(): HTMLInputElement {
-    return getElement(this.element, './/input') as HTMLInputElement
+    return getTextControl(this.element) as HTMLInputElement
   }
 
   listenForChanges(): void {
@@ -25,7 +27,7 @@ export class TextInput extends GreenhouseReactBaseInput<any> {
     input.addEventListener("input", (event) => {
       // Page initialization can emit synthetic events; only protect actual
       // typing (including a focused input used by accessibility/input tools).
-      if (event.isTrusted || input.ownerDocument.activeElement === input) this.edited = true
+      if (!this.filling && (event.isTrusted || input.ownerDocument.activeElement === input)) this.edited = true
       this.triggerReactUpdate()
     })
   }
@@ -53,14 +55,26 @@ export class TextInput extends GreenhouseReactBaseInput<any> {
   private fillAnswer(value: unknown) {
     const input = this.inputElement
     const props = getReactProps(input)
+    const eventName = typeof props?.onChange === 'function' ? 'onChange' : 'onInput'
     if (typeof value !== 'string' || !value.trim() || !input?.isConnected ||
-        input.disabled || input.readOnly || typeof props?.onChange !== 'function') return
+        input.disabled || input.readOnly || typeof props?.[eventName] !== 'function') return
     // Keep React's state and the DOM in sync; both event targets are used by
     // Greenhouse controls. Never count a DOM-only assignment as a filled form.
     const setter = Object.getOwnPropertyDescriptor(input.ownerDocument.defaultView.HTMLInputElement.prototype, 'value').set
-    setter.call(input, value)
-    props.onChange({ target: input, currentTarget: input, type: 'change',
-      preventDefault() {}, stopPropagation() {} })
+    this.filling = true
+    try {
+      setter.call(input, value)
+      if (eventName === 'onInput') {
+        // The phone widget uses native input listeners before React's onInput
+        // reads its formatted number. Let the event reach both in normal order.
+        input.dispatchEvent(new input.ownerDocument.defaultView.Event('input', { bubbles: true }))
+      } else {
+        props.onChange({ target: input, currentTarget: input, type: 'change',
+          preventDefault() {}, stopPropagation() {} })
+      }
+    } finally {
+      this.filling = false
+    }
     this.triggerReactUpdate()
   }
   async fill(): Promise<void> {
