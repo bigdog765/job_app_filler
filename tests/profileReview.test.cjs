@@ -11,6 +11,7 @@ const dom = loadTs('src/inject/app/services/formFields/generic/dom.ts', {
   '../workday/sectionHeading': loadTs('src/inject/app/services/formFields/workday/sectionHeading.ts'),
 })
 const { createProfileReview, describeProfileFields, matchesProfileAnswer } = loadTs('src/inject/app/services/formFields/generic/profileReview.ts', {
+  '@src/shared/utils/fieldRequirement': loadTs('src/shared/utils/fieldRequirement.ts'),
   '@src/shared/utils/profileSemantics': semantics, './dom': dom,
 })
 const { createProfileAutofill } = loadTs('src/inject/app/services/formFields/generic/profileAutofill.ts', {

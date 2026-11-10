@@ -19,12 +19,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== 'MATCH_PROFILE_OPENAI' || sender.id !== chrome.runtime.id ||
       !sender.tab || !/^https?:\/\//.test(sender.url || '')) return
   const path = message.path
-  const requestGeneration = generation
-  ;(async () => {
+  const requestGeneration = generation;
+  const reportMissing = async (message: string) => {
+    if (path?.required !== true || generation !== requestGeneration ||
+        typeof path.fieldName !== 'string' || typeof path.section !== 'string') return
+    const label = path.fieldName.trim().replace(/\s+/g, ' ')
+    const section = path.section.trim().replace(/\s+/g, ' ')
+    await chrome.storage.session.set({ openaiStatus:
+      `${message} Required field: “${label}”${section ? ` (section: ${section})` : ''}.` })
+  };
+  (async () => {
     const { openaiEnabled } = await chrome.storage.session.get('openaiEnabled')
     if (openaiEnabled === false) return { entryId: null }
     const candidates = candidatesFor(path, localProfile)
-    if (!candidates.length) return { entryId: null }
+    if (!candidates.length) {
+      await reportMissing('No eligible profile entry.')
+      return { entryId: null }
+    }
     const key = JSON.stringify([path.fieldName, path.section, path.fieldType])
     if (!cache.has(key)) {
       const tabId = sender.tab.id
@@ -43,14 +54,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     const entryId = await cache.get(key)
     if (generation !== requestGeneration) return { entryId: null }
-    await chrome.storage.session.set({ openaiStatus: entryId === null ? 'No confident profile match.' : 'Connected: profile match found.' })
+    if (entryId === null) await reportMissing('No confident profile match.')
     return { entryId }
   })().then(sendResponse).catch(async (error) => {
     // Do not include response bodies, prompts, or credentials in logs/errors.
     const status = error?.name === 'TimeoutError' ? 'OpenAI request timed out.' :
       error instanceof TypeError ? 'Local AI service unavailable. Start npm run ai:server, reset matching, and refresh.' :
       error instanceof SyntaxError ? 'OpenAI returned an unreadable match.' : error.message || 'OpenAI matching failed.'
-    await chrome.storage.session.set({ openaiStatus: status })
+    await reportMissing(status)
     sendResponse({ entryId: null })
   })
   return true

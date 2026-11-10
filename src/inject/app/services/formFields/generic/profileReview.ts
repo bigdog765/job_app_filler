@@ -1,4 +1,5 @@
 import { FieldPath } from '@src/shared/utils/types'
+import { isRequiredField } from '@src/shared/utils/fieldRequirement'
 import { fieldMeaning, sectionMeaning } from '@src/shared/utils/profileSemantics'
 import { Control, discoverControls, fieldLabel, fieldSection, controlType, currentValue,
   fillControl, isUsable, isConsent, normalize } from './dom'
@@ -51,6 +52,7 @@ export function describeProfileFields(controls: Control[]): InferredFieldPath[] 
       }
     }
     return { section, fieldName: fieldLabel(control), fieldType: controlType(control),
+      required: isRequiredField(control, fieldLabel(control)),
       page: control.ownerDocument.title, ...(inference && { inference }) }
   })
 }

@@ -9,6 +9,7 @@ import { App } from '../../App'
 import { SaveButtonClickHndler, saveButtonClickHandlers } from '../../hooks/saveButtonClickHandlers'
 import { EditableAnswer, useEditableAnswerState } from '../../hooks/useEditableAnswerState'
 import { contentScriptAPI } from '../contentScriptApi'
+import { isRequiredField } from '@src/shared/utils/fieldRequirement'
 
 export type AnswerValueMethods = {
   displayComponent: FC<{ id: number }>
@@ -178,7 +179,9 @@ export abstract class BaseFormInput<AnswerType> {
 
   async answer(path?: FieldPath): Promise<Answer[]> {
     path = path || this.path
-    const res = await contentScriptAPI.send('getAnswer', path)
+    const res = await contentScriptAPI.send('getAnswer', {
+      ...path, required: isRequiredField(this.element, this.fieldName),
+    })
     if (res.ok) {
       return res.data
     } else {
