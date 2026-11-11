@@ -9,6 +9,7 @@ import { App } from '../../App'
 import { SaveButtonClickHndler, saveButtonClickHandlers } from '../../hooks/saveButtonClickHandlers'
 import { EditableAnswer, useEditableAnswerState } from '../../hooks/useEditableAnswerState'
 import { contentScriptAPI } from '../contentScriptApi'
+import { isAcknowledgment } from '@src/shared/utils/acknowledgment'
 import { isRequiredField } from '@src/shared/utils/fieldRequirement'
 
 export type AnswerValueMethods = {
@@ -179,6 +180,10 @@ export abstract class BaseFormInput<AnswerType> {
 
   async answer(path?: FieldPath): Promise<Answer[]> {
     path = path || this.path
+    if (path.fieldType === 'SingleCheckbox' && isAcknowledgment(path.fieldName || '')) {
+      // Dedicated acknowledgment handling respects manual edits and does not use saved answers.
+      return []
+    }
     const res = await contentScriptAPI.send('getAnswer', {
       ...path, required: isRequiredField(this.element, this.fieldName),
     })

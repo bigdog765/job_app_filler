@@ -92,7 +92,7 @@ export function isUsable(control: Control): boolean {
 }
 
 export function isConsent(control: Control): boolean {
-  return /\b(agree|consent|certify|attest|signature|terms|privacy|subscribe|newsletter)\b/i.test(fieldLabel(control))
+  return /\b(acknowledg(?:e|ed|ement|ment)|agree|consent|certify|attest|signature|terms|privacy|subscribe|newsletter)\b/i.test(fieldLabel(control))
 }
 
 export function fieldSection(control: Control): string {

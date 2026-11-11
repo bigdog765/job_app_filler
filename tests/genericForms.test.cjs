@@ -292,6 +292,7 @@ test('generic content-script bootstrap never exposes the storage bridge or injec
   let started = 0
   const answerRequest = async () => []
   loadTs('src/contentScript/contentScript.ts', {
+    './acknowledgments': { startAcknowledgments() { return { enable() {} } } },
     './publicPath': {},
     '@src/shared/utils/crossContextCommunication/server': { Server: class { constructor() { bridges++ } } },
     '@src/shared/utils/siteAdapter': { getSiteAdapter },

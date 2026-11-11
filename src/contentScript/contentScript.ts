@@ -1,4 +1,5 @@
 import './publicPath'
+import { startAcknowledgments } from './acknowledgments'
 import { Server } from '@src/shared/utils/crossContextCommunication/server'
 import { getSiteAdapter } from '@src/shared/utils/siteAdapter'
 import { EVENT_LISTENER_ID, loadApp } from './app/App'
@@ -9,6 +10,7 @@ import { createProfileReview } from '@src/inject/app/services/formFields/generic
 import { createProfileAutofill } from '@src/inject/app/services/formFields/generic/profileAutofill'
 
 const specialized = getSiteAdapter(window.location.hostname) !== 'generic'
+const acknowledgments = startAcknowledgments(document, specialized)
 let generic: ReturnType<typeof startGenericForms>
 let appLoaded = false
 const profileReview = createProfileReview(document, (path) => answerRequest('getProfileSuggestion', path))
@@ -36,6 +38,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ ok: true })
   }
   if (message.type === 'ENABLE_GENERIC_FORM') {
+    acknowledgments.enable()
     if (specialized) {
       sendResponse({ ok: true, specialized: true })
     } else {
