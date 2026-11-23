@@ -180,12 +180,13 @@ export abstract class BaseFormInput<AnswerType> {
 
   async answer(path?: FieldPath): Promise<Answer[]> {
     path = path || this.path
-    if (path.fieldType === 'SingleCheckbox' && isAcknowledgment(path.fieldName || '')) {
-      // Dedicated acknowledgment handling respects manual edits and does not use saved answers.
+    const required = isRequiredField(this.element, this.fieldName)
+    if (path.fieldType === 'SingleCheckbox' && (required || isAcknowledgment(path.fieldName || ''))) {
+      // The checkbox handler owns these fields and preserves manual edits.
       return []
     }
     const res = await contentScriptAPI.send('getAnswer', {
-      ...path, required: isRequiredField(this.element, this.fieldName),
+      ...path, required,
     })
     if (res.ok) {
       return res.data

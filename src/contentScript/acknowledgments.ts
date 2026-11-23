@@ -1,6 +1,7 @@
 import { isApplicationForm } from '@src/inject/app/services/formFields/generic/dom'
 
 import { isAcknowledgment } from '@src/shared/utils/acknowledgment'
+import { isRequiredField } from '@src/shared/utils/fieldRequirement'
 
 function labelFor(control: HTMLElement): string {
   const referenced = (control.getAttribute('aria-labelledby') || '').split(/\s+/)
@@ -44,7 +45,8 @@ export function startAcknowledgments(document: Document, specialized: boolean) {
       if (!visible) continue
       const container = control.closest('form, [role="form"], .application--container') || document.body
       if (!specialized && !forced && !isApplicationForm(container)) continue
-      if (!isAcknowledgment(labelFor(control))) continue
+      const label = labelFor(control)
+      if (!isRequiredField(control, label) && !isAcknowledgment(label)) continue
       const checked = () => control.matches('input') ? (control as HTMLInputElement).checked : control.getAttribute('aria-checked') === 'true'
       if (checked()) continue
       writing = true
@@ -57,7 +59,7 @@ export function startAcknowledgments(document: Document, specialized: boolean) {
   const schedule = () => { clearTimeout(timer); timer = setTimeout(scan, 100) }
   const observer = new MutationObserver(schedule)
   observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['hidden', 'aria-hidden', 'disabled', 'aria-disabled', 'aria-label', 'aria-labelledby', 'role', 'type', 'class', 'style'] })
+    attributeFilter: ['hidden', 'aria-hidden', 'disabled', 'aria-disabled', 'required', 'aria-required', 'aria-label', 'aria-labelledby', 'for', 'id', 'role', 'type', 'class', 'style'] })
   schedule()
   return {
     enable() { forced = true; scan() },

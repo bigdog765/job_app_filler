@@ -49,7 +49,8 @@ export function startGenericForms(document: Document, prepare: () => Promise<voi
   const observer = new MutationObserver(schedule)
   observer.observe(document.body, {
     childList: true, subtree: true, attributes: true,
-    attributeFilter: ['hidden', 'style', 'class', 'disabled', 'readonly', 'aria-hidden', 'aria-label', 'name', 'type'],
+    attributeFilter: ['hidden', 'style', 'class', 'disabled', 'readonly', 'aria-hidden', 'aria-disabled', 'aria-readonly',
+      'aria-label', 'aria-labelledby', 'aria-checked', 'aria-required', 'role', 'name', 'type'],
   })
   schedule()
   return {

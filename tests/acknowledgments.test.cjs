@@ -3,7 +3,9 @@ const { test } = require('node:test')
 const { JSDOM } = require('jsdom')
 const loadTs = require('./helpers/loadTs.cjs')
 const matcher = loadTs('src/shared/utils/acknowledgment.ts')
+const requirement = loadTs('src/shared/utils/fieldRequirement.ts')
 const dom = loadTs('src/inject/app/services/formFields/generic/dom.ts', {
+  '@src/shared/utils/fieldRequirement': requirement,
   '../workday/sectionHeading': loadTs('src/inject/app/services/formFields/workday/sectionHeading.ts'),
 })
 function setup(markup, specialized = false) {
@@ -12,6 +14,7 @@ function setup(markup, specialized = false) {
   let scan
   const { startAcknowledgments } = loadTs('src/contentScript/acknowledgments.ts', {
     '@src/shared/utils/acknowledgment': matcher,
+    '@src/shared/utils/fieldRequirement': requirement,
     '@src/inject/app/services/formFields/generic/dom': dom,
   }, { MutationObserver: window.MutationObserver, setTimeout: fn => { scan = fn; return 1 }, clearTimeout() {} })
   const controller = startAcknowledgments(window.document, specialized)
@@ -59,6 +62,34 @@ test('checks every acknowledgment in an application, keeps manual unchecks, and 
     assert.equal(custom.getAttribute('aria-checked'), 'true')
     assert.equal(submissions, 0)
   } finally { ctx.controller.stop(); window.close() }
+})
+
+test('checks individually required boxes regardless of wording and preserves manual unchecks', async () => {
+  const ctx = setup(`<form aria-label="Job application"><label>Name<input></label>
+    <label><input id="agreement" type="checkbox" required>I agree to the Alternate Dispute Resolution statement above</label>
+    <label for="certify">I certify my answers are accurate *</label><input id="certify" type="checkbox">
+    <fieldset><legend>Confirm availability (required)</legend><input type="checkbox" id="available"></fieldset>
+    <fieldset><legend>Select at least one *</legend><label><input id="a" type="checkbox">A</label>
+      <label><input id="b" type="checkbox">B</label></fieldset>
+    <div role="checkbox" aria-label="Other agreement" aria-checked="false" id="custom"></div>
+    <label><input id="disabled" type="checkbox" required disabled>Accept</label></form>`)
+  try {
+    const get = id => ctx.document.getElementById(id)
+    const custom = get('custom')
+    custom.addEventListener('click', () => custom.setAttribute('aria-checked', 'true'))
+    ctx.scan()
+    for (const id of ['agreement', 'certify', 'available']) assert.equal(get(id).checked, true, id)
+    for (const id of ['a', 'b', 'disabled']) assert.equal(get(id).checked, false, id)
+    assert.equal(custom.getAttribute('aria-checked'), 'false')
+    get('agreement').click()
+    custom.setAttribute('aria-required', 'true')
+    await new Promise(resolve => setImmediate(resolve))
+    ctx.scan()
+    assert.equal(custom.getAttribute('aria-checked'), 'true')
+    assert.equal(get('agreement').checked, false)
+    dom.fillControl(get('available'), [false])
+    assert.equal(get('available').checked, true)
+  } finally { ctx.controller.stop(); ctx.window.close() }
 })
 
 test('does not check acknowledgments on unrelated websites; retries are bounded when a widget refuses', () => {

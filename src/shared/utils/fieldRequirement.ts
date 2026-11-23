@@ -1,11 +1,15 @@
-/** Required status is used for notifications, never to prevent autofill. */
 export function isRequiredField(element: HTMLElement, label = ''): boolean {
-  const selector = 'input:not([type="hidden"]):not([type="search"]), textarea, select, [role="combobox"], [role="radiogroup"]'
+  const selector = 'input:not([type="hidden"]):not([type="search"]), textarea, select, [role="checkbox"], [role="combobox"], [role="radiogroup"]'
   const controls = (element.matches(selector) ? [element] : Array.from(element.querySelectorAll<HTMLElement>(selector)))
     .filter(control => !control.closest('[data-jaf-ui], .jaf-widget, .iti__country-container'))
   const nodes = [element, ...controls]
   const radio = controls.find(control => control.matches('input[type="radio"]')) as HTMLInputElement
-  const group = radio?.closest<HTMLElement>('fieldset, [role="radiogroup"]')
+  const checkboxSelector = 'input[type="checkbox"], [role="checkbox"]'
+  const fieldset = element.matches(checkboxSelector) ? element.closest('fieldset') : null
+  // A required legend can describe a choice among several options. Only inherit
+  // it when this checkbox is the fieldset's sole field.
+  const singleFieldset = fieldset?.querySelectorAll(selector).length === 1 ? fieldset : null
+  const group = radio?.closest<HTMLElement>('fieldset, [role="radiogroup"]') || singleFieldset
   if (group) nodes.push(group)
   if (radio?.name) nodes.push(...Array.from((radio.form || radio.ownerDocument)
     .querySelectorAll<HTMLInputElement>('input[type="radio"]')).filter(peer => peer.name === radio.name && peer.form === radio.form))

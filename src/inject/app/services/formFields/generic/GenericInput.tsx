@@ -58,12 +58,9 @@ export class GenericInput extends BaseFormInput<any> {
       ? radioControls(this.control as HTMLInputElement) : [this.control]
     this.listeners = controls.map((control) => {
       const onChange = () => { this.touched = true; this.triggerReactUpdate() }
-      control.addEventListener('input', onChange)
-      control.addEventListener('change', onChange)
-      return () => {
-        control.removeEventListener('input', onChange)
-        control.removeEventListener('change', onChange)
-      }
+      const events = control.matches('[role="radiogroup"]') ? ['input', 'change', 'click'] : ['input', 'change']
+      events.forEach(event => control.addEventListener(event, onChange))
+      return () => events.forEach(event => control.removeEventListener(event, onChange))
     })
   }
 
@@ -90,14 +87,14 @@ export class GenericInput extends BaseFormInput<any> {
       // the website has already populated an old value or a default option.
       const answers = await this.answer()
       if (!this.touched && !this.preventAutoFill?.() && before === JSON.stringify(this.fieldSnapshot)) {
-        fillControl(this.control, answers.map((answer) => answer.answer))
+        await fillControl(this.control, answers.map((answer) => answer.answer))
       }
     } finally { this.fillingAutomatically = false }
   }
 
   async fill(): Promise<void> {
     const answers = await this.answer()
-    fillControl(this.control, answers.map((answer) => answer.answer))
+    await fillControl(this.control, answers.map((answer) => answer.answer))
   }
 
   dispose() {

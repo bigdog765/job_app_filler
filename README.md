@@ -75,12 +75,11 @@ API integration: [OpenAI structured outputs](https://developers.openai.com/api/d
 
 ## Company website forms
 
-JAF automatically checks visible acknowledgment checkboxes on application forms,
-including labels such as “I acknowledge…” and “I have read and understand…”.
-This also works on the supported Workday/Greenhouse sites and dynamically added
-checkboxes. It preserves manual changes and does not submit the application.
-Marketing subscriptions, eligibility answers, and factual certifications are not
-treated as acknowledgments. Other consent fields retain their existing exclusions.
+JAF automatically checks visible, enabled checkboxes marked as required on
+application forms, including agreements and certifications. It recognizes HTML
+and ARIA required attributes and label markers such as an asterisk. Optional
+acknowledgments such as “I acknowledge…” and “I have read and understand…”
+are also checked. The rule applies to newly added fields and preserves manual unchecks.
 
 The extension also runs on HTTP/HTTPS company websites. It automatically detects
 likely application forms and adds the same Fill, Save, and More Info controls to

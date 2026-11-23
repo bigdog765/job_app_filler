@@ -8,6 +8,7 @@ const { profileSuggestion } = loadTs('src/contentScript/utils/storage/profileSug
   '@src/shared/utils/profileSemantics': semantics, './profileFallback': fallback,
 })
 const dom = loadTs('src/inject/app/services/formFields/generic/dom.ts', {
+  '@src/shared/utils/fieldRequirement': loadTs('src/shared/utils/fieldRequirement.ts'),
   '../workday/sectionHeading': loadTs('src/inject/app/services/formFields/workday/sectionHeading.ts'),
 })
 const { createProfileReview, describeProfileFields, matchesProfileAnswer } = loadTs('src/inject/app/services/formFields/generic/profileReview.ts', {
@@ -35,6 +36,48 @@ const history = `<form><h2>Employment history</h2>
   <div class="record">${input('employer2', 'Name of employer')}${input('role2', 'Role title')}</div>
   <h2>References</h2>${input('reference', 'Name of employer', 'Reference Employer')}</form>`
 
+test('discovers each custom radio group once and fills only an available matching choice', async () => {
+  const questions = [
+    ['Authorized beyond a practical training period?', ['Yes', 'No']],
+    ['Require work authorization or a visa?', ['Yes', 'No']],
+    ['Resident of one of the five boroughs?', ['Yes', 'No']],
+    ['Expected total compensation', ['$120,001-$130,000', '$130,001-$140,000']],
+  ]
+  const groups = questions.map(([label, choices], i) => `
+    <span id="question-${i}">${label}</span><div role="radiogroup" aria-required="true" aria-labelledby="question-${i}">
+      ${choices.map((choice, n) => `<div><a role="radio" href="#" aria-checked="false"
+        aria-labelledby="answer-${i}-${n}"></a><span id="answer-${i}-${n}">${choice}</span></div>`).join('')}
+    </div>`).join('')
+  const document = documentFor(`<form aria-label="Job application">${input('name', 'First Name')}${groups}</form>`)
+  const controls = dom.discoverControls(document).filter(control => dom.controlType(control) === 'BooleanRadio')
+  const paths = describeProfileFields(controls)
+  assert.deepEqual(paths.map(path => path.fieldName), questions.map(([label]) => label))
+  assert.ok(paths.every(path => path.required))
+  for (const group of controls) {
+    group.addEventListener('click', event => {
+      event.preventDefault()
+      for (const radio of group.querySelectorAll('[role="radio"]')) {
+        radio.setAttribute('aria-checked', String(radio === event.target))
+      }
+    })
+  }
+  const answers = new Map(questions.map(([label], i) => [label, ['No', 'Yes', undefined, '$130,000'][i]]))
+  const autofill = createProfileAutofill(document, async path => answers.get(path.fieldName))
+  try {
+    await autofill.fill(controls)
+    assert.deepEqual(controls.map(dom.currentValue), ['No', 'Yes', '', ''])
+    controls[0].querySelector('[role="radio"]').click()
+    await autofill.fill(controls)
+    assert.equal(dom.currentValue(controls[0]), 'Yes')
+    answers.set(questions[3][0], '$120,001-$130,000')
+    const review = createProfileReview(document, async path => answers.get(path.fieldName))
+    const { rows } = await review.scan()
+    const range = rows.find(row => row.label === questions[3][0])
+    assert.deepEqual(await review.apply([range.id]), { applied: 1, skipped: 0 })
+    assert.equal(dom.currentValue(controls[3]), '$120,001-$130,000')
+  } finally { autofill.stop(); document.defaultView.close() }
+})
+
 test('infers repeated unnumbered employment blocks and bounds them at the next section', () => {
   const document = documentFor(history)
   const paths = describeProfileFields(dom.discoverControls(document, true))
@@ -52,7 +95,7 @@ test('preview does not mutate populated history; only selected updates apply and
   assert.equal(rows[0].suggested, 'New Employer')
   assert.match(rows[0].reason, /page order|record order/)
   assert.equal(rows[4].status, 'unmatched')
-  assert.deepEqual(review.apply([rows[0].id, rows[1].id]), { applied: 2, skipped: 0 })
+  assert.deepEqual(await review.apply([rows[0].id, rows[1].id]), { applied: 2, skipped: 0 })
   assert.equal(document.getElementById('employer1').value, 'New Employer')
   assert.equal(document.getElementById('role1').value, 'Senior Engineer')
   assert.equal(document.getElementById('employer2').value, '')
@@ -69,7 +112,7 @@ test('stale previews cannot overwrite user edits, removed fields, or a reordered
     const review = createProfileReview(document, async path => profileSuggestion(path, profile))
     const { rows } = await review.scan()
     mutate(document)
-    assert.deepEqual(review.apply([rows[0].id]), { applied: 0, skipped: 1 })
+    assert.deepEqual(await review.apply([rows[0].id]), { applied: 0, skipped: 1 })
   }
 })
 
@@ -78,7 +121,7 @@ test('refreshing review invalidates old IDs and changes during lookup are not ac
   const review = createProfileReview(document, async path => profileSuggestion(path, profile))
   const first = await review.scan()
   await review.scan()
-  assert.deepEqual(review.apply([first.rows[0].id]), { applied: 0, skipped: 1 })
+  assert.deepEqual(await review.apply([first.rows[0].id]), { applied: 0, skipped: 1 })
   const racing = createProfileReview(document, async () => {
     document.getElementById('first').value = 'Typing'
     return 'Example'
@@ -91,7 +134,7 @@ test('editing an employer invalidates other suggested fields in that employment 
   const review = createProfileReview(document, async path => profileSuggestion(path, profile))
   const { rows } = await review.scan()
   document.getElementById('employer1').value = 'A different employer'
-  assert.deepEqual(review.apply([rows[1].id]), { applied: 0, skipped: 1 })
+  assert.deepEqual(await review.apply([rows[1].id]), { applied: 0, skipped: 1 })
   assert.equal(document.getElementById('role1').value, 'Old Title')
 })
 
@@ -136,7 +179,7 @@ test('unsupported option values fail without replacing the existing selection', 
   const document = documentFor('<form><select aria-label="Country"><option value="old">Existing</option></select></form>')
   const review = createProfileReview(document, async () => ['Unavailable'])
   const { rows } = await review.scan()
-  assert.deepEqual(review.apply([rows[0].id]), { applied: 0, skipped: 1 })
+  assert.deepEqual(await review.apply([rows[0].id]), { applied: 0, skipped: 1 })
   assert.equal(document.querySelector('select').value, 'old')
 })
 
@@ -152,7 +195,7 @@ test('an unnumbered Work Experience Job Title matches record 1 even without a us
     assert.equal(rows[0].status, 'update')
     assert.match(rows[0].reason, /job title fields in page order/)
     assert.equal(document.getElementById('title').value, 'Older role')
-    assert.deepEqual(review.apply([rows[0].id]), { applied: 1, skipped: 0 })
+    assert.deepEqual(await review.apply([rows[0].id]), { applied: 1, skipped: 0 })
     assert.equal(document.getElementById('title').value, 'Senior Engineer')
   }
 })

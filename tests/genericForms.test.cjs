@@ -5,7 +5,10 @@ const path = require('node:path')
 const { JSDOM } = require('jsdom')
 const loadTs = require('./helpers/loadTs.cjs')
 const heading = loadTs('src/inject/app/services/formFields/workday/sectionHeading.ts')
-const dom = loadTs('src/inject/app/services/formFields/generic/dom.ts', { '../workday/sectionHeading': heading })
+const dom = loadTs('src/inject/app/services/formFields/generic/dom.ts', {
+  '../workday/sectionHeading': heading,
+  '@src/shared/utils/fieldRequirement': loadTs('src/shared/utils/fieldRequirement.ts'),
+})
 const { getSiteAdapter } = loadTs('src/shared/utils/siteAdapter.ts')
 const { answersWithProfileFallback } = loadTs('src/contentScript/utils/storage/profileFallback.ts')
 function documentFor(html) {
@@ -66,7 +69,7 @@ test('discovers standard fields in the repo sample job form, but excludes consen
   assert.ok(controls.some((control) => control.id === 'email'))
   assert.ok(controls.some((control) => control.id === 'jobType'))
   assert.ok(controls.some((control) => control.id === 'skills'))
-  assert.ok(controls.every((control) => control.type !== 'file' && !dom.isConsent(control)))
+  assert.ok(controls.every((control) => control.type !== 'file' && !dom.excludesProfileAnswer(control)))
 })
 
 test('does not autofill newsletter, login, search, or ordinary contact forms', () => {
@@ -308,4 +311,41 @@ test('generic content-script bootstrap never exposes the storage bridge or injec
   assert.equal(prepared, 0)
   assert.equal(transport, answerRequest)
   assert.equal(document.querySelector('script'), null)
+})
+
+test('SuccessFactors pickers commit exact profile options via the associated list', async () => {
+  const window = new JSDOM('<form id="applicationForm"><label>First Name<input></label></form>', {
+    url: 'https://career5.successfactors.eu/portalcareer',
+  }).window
+  window.HTMLElement.prototype.getClientRects = () => [{ width: 50, height: 20 }]
+  const document = window.document
+  for (const [id, question, choices, answer] of [
+    ['446', 'What is your gender?', ['Female', 'Male'], ['Male']],
+    ['457', 'Are you a Protected Veteran?', ['Yes', 'No'], ['Not a veteran', 'No']],
+  ]) {
+    const field = id + ':_input'
+    const form = document.querySelector('form')
+    form.insertAdjacentHTML('beforeend', `<label for="${field}">${question}</label>
+      <input readonly role="combobox" id="${field}" aria-controls="list-${id}">
+      <button type="button" id="${id}:_selectButton"></button>`)
+    const control = document.getElementById(field)
+    document.getElementById(id + ':_selectButton').onclick = () => setTimeout(() => {
+      const list = document.createElement('div')
+      list.id = 'list-' + id
+      list.setAttribute('role', 'listbox')
+      for (const choice of choices) {
+        const option = document.createElement('div')
+        option.setAttribute('role', 'option')
+        option.textContent = choice
+        option.onclick = () => { control.value = choice; list.remove() }
+        list.appendChild(option)
+      }
+      document.body.appendChild(list)
+    }, 1)
+    assert.ok(dom.discoverControls(document).includes(control))
+    assert.equal(dom.controlType(control), 'SimpleDropdown')
+    await dom.fillControl(control, [answer])
+    assert.equal(dom.currentValue(control), answer.at(-1))
+  }
+  window.close()
 })

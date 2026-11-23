@@ -25,7 +25,7 @@ export function ProfileReview() {
       setTabId(tab.id); setRows(result.rows)
       const count = result.rows.filter((row: ReviewRow) => row.status === 'update').length
       const unmatched = result.rows.filter((row: ReviewRow) => row.status === 'unmatched').length
-      setMessage(`${count} suggested updates. ${unmatched} fields have no profile match. Hidden fields and custom controls are excluded.`)
+      setMessage(`${count} suggested updates. ${unmatched} fields have no profile match. Hidden fields and unsupported controls are excluded.`)
     } catch (error) { setMessage(error.message || 'Refresh the page after reloading the extension.') }
     finally { setBusy(false) }
   }

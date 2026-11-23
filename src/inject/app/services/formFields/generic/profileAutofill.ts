@@ -1,6 +1,6 @@
 import { FieldPath } from '@src/shared/utils/types'
 import { describeProfileFields, matchesProfileAnswer } from './profileReview'
-import { Control, currentValue, discoverControls, fillControl, isUsable, isConsent, radioControls } from './dom'
+import { Control, controlForm, currentValue, customRadioChoices, discoverControls, fillControl, isUsable, excludesProfileAnswer, radioControls } from './dom'
 
 const snapshot = (control: Control) => JSON.stringify({ value: currentValue(control), raw: control.value })
 
@@ -13,13 +13,19 @@ export function createProfileAutofill(document: Document, suggest: (path: FieldP
   let stopped = false
   const onEdit = (event: Event) => {
     if (writing) return
+    if (event.type === 'keydown' && ![' ', 'Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes((event as KeyboardEvent).key)) return
     const control = event.target as Control
+    const group = control?.closest?.('[role="radio"]')?.closest<HTMLElement>('[role="radiogroup"]')
+    if (group) touched.add(group)
+    if (event.type === 'click' || event.type === 'keydown') return
     if (!control?.matches?.('input, textarea, select')) return
     touched.add(control)
     if (control.type === 'radio') radioControls(control as HTMLInputElement).forEach((radio) => touched.add(radio))
   }
   document.addEventListener('input', onEdit, true)
   document.addEventListener('change', onEdit, true)
+  document.addEventListener('click', onEdit, true)
+  document.addEventListener('keydown', onEdit, true)
   return {
     protects: (control: Control) => touched.has(control) || applied.has(control),
     async fill(controls: Control[]) {
@@ -28,7 +34,7 @@ export function createProfileAutofill(document: Document, suggest: (path: FieldP
       const before = controls.map(snapshot)
       const signatures = controls.map((control, i) => JSON.stringify([paths[i],
         control.tagName === 'SELECT' ? Array.from((control as HTMLSelectElement).options)
-          .map((option) => [option.value, option.textContent, option.disabled, !!option.closest('optgroup[disabled]')]) : null]))
+          .map((option) => [option.value, option.textContent, option.disabled, !!option.closest('optgroup[disabled]')]) : customRadioChoices(control)]))
       const answers = await Promise.all(controls.map((control, i) =>
         touched.has(control) || applied.has(control) || attempted.get(control) === signatures[i]
           ? undefined : suggest(paths[i])))
@@ -45,13 +51,14 @@ export function createProfileAutofill(document: Document, suggest: (path: FieldP
       for (let i = 0; i < controls.length; i++) {
         const control = controls[i]
         const recordUnchanged = !/^(Work Experience|Education) \d+$/.test(paths[i].section) ||
-          controls.every((peer, j) => peer.form !== control.form || paths[j].section !== paths[i].section || valid[j])
+          controls.every((peer, j) => controlForm(peer) !== controlForm(control) || paths[j].section !== paths[i].section || valid[j])
         if (answers[i] === undefined || !valid[i] || !recordUnchanged || touched.has(control) ||
-            !isUsable(control) || isConsent(control) || snapshot(control) !== before[i]) continue
+            !isUsable(control) || excludesProfileAnswer(control) || snapshot(control) !== before[i]) continue
         attempted.set(control, signatures[i])
         writing = true
         try {
-          fillControl(control, [answers[i]])
+          const pending = fillControl(control, [answers[i]])
+          if (pending) { writing = false; await pending }
           if (matchesProfileAnswer(control, answers[i])) applied.add(control)
         }
         finally { writing = false }
@@ -61,6 +68,8 @@ export function createProfileAutofill(document: Document, suggest: (path: FieldP
       stopped = true
       document.removeEventListener('input', onEdit, true)
       document.removeEventListener('change', onEdit, true)
+      document.removeEventListener('click', onEdit, true)
+      document.removeEventListener('keydown', onEdit, true)
     },
   }
 }

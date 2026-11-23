@@ -1,13 +1,13 @@
 import { FieldPath } from '@src/shared/utils/types'
 import { isRequiredField } from '@src/shared/utils/fieldRequirement'
 import { fieldMeaning, sectionMeaning } from '@src/shared/utils/profileSemantics'
-import { Control, discoverControls, fieldLabel, fieldSection, controlType, currentValue,
-  fillControl, isUsable, isConsent, normalize } from './dom'
+import { Control, controlForm, discoverControls, fieldLabel, fieldSection, controlType, currentValue,
+  fillControl, isUsable, excludesProfileAnswer, normalize } from './dom'
 
 function nearbySection(control: Control): string {
   const explicit = fieldSection(control)
   if (explicit) return sectionMeaning(explicit)
-  const root = control.form || control.ownerDocument.body
+  const root = controlForm(control) || control.ownerDocument.body
   const headings = Array.from(root.querySelectorAll('h1,h2,h3,h4,h5,h6,legend,[role="heading"]'))
     .filter((heading) => !heading.closest('[data-jaf-ui], [hidden], [aria-hidden="true"]') &&
       !!(heading.compareDocumentPosition(control) & 4))
@@ -27,7 +27,8 @@ export function describeProfileFields(controls: Control[]): InferredFieldPath[] 
     let section = sections[index]
     let inference: string
     if (section === 'Work Experience' || section === 'Education') {
-      const peers = controls.filter((other, i) => other.form === control.form && sections[i] === section)
+      const form = controlForm(control)
+      const peers = controls.filter((other, i) => controlForm(other) === form && sections[i] === section)
       const anchorTypes = section === 'Work Experience' ? ['Company', 'Job Title'] : ['School', 'Field of Study']
       // Employer/school controls may be custom widgets, hidden, or absent. A
       // recognized job title is equally useful for locating a work record.
@@ -40,7 +41,7 @@ export function describeProfileFields(controls: Control[]): InferredFieldPath[] 
       // Identify a repeated record by a common container with exactly one anchor.
       // An ambiguous layout is left unmatched rather than mixing two employers.
       let record: Control
-      for (let parent = control.parentElement; parent && parent !== control.form; parent = parent.parentElement) {
+      for (let parent = control.parentElement; parent && parent !== form; parent = parent.parentElement) {
         const contained = anchors.filter((other) => parent.contains(other))
         if (contained.length === 1) { record = contained[0]; break }
         if (contained.length > 1) break
@@ -87,7 +88,7 @@ export function createProfileReview(document: Document, suggest: (path: FieldPat
         const id = `${version}:${i}`
         const unchanged = before === snapshot(control)
         const status = !unchanged ? 'changed' : answer === undefined ? 'unmatched' : matchesProfileAnswer(control, answer) ? 'current' : 'update'
-        const members = controls.flatMap((member, j) => member.form === control.form &&
+        const members = controls.flatMap((member, j) => controlForm(member) === controlForm(control) &&
           paths[j].section === path.section && /^(Work Experience|Education) \d+$/.test(path.section)
           ? [{ control: member, before: snapshots[j] }] : [])
         if (status === 'update' && version === generation) plans.set(id, { control, path, before, answer, members })
@@ -98,7 +99,7 @@ export function createProfileReview(document: Document, suggest: (path: FieldPat
       }))
       return { rows }
     },
-    apply(ids: string[]) {
+    async apply(ids: string[]) {
       let applied = 0, skipped = 0
       const controls = discoverControls(document, true)
       const paths = describeProfileFields(controls)
@@ -111,10 +112,10 @@ export function createProfileReview(document: Document, suggest: (path: FieldPat
       }).map(([id]) => id))
       for (const id of new Set(ids)) {
         const plan = plans.get(id)
-        if (!plan || !valid.has(id) || !isUsable(plan.control) || isConsent(plan.control) || snapshot(plan.control) !== plan.before) {
+        if (!plan || !valid.has(id) || !isUsable(plan.control) || excludesProfileAnswer(plan.control) || snapshot(plan.control) !== plan.before) {
           skipped++; continue
         }
-        fillControl(plan.control, [plan.answer])
+        await fillControl(plan.control, [plan.answer])
         if (matchesProfileAnswer(plan.control, plan.answer)) applied++
         else skipped++
         plans.delete(id)
