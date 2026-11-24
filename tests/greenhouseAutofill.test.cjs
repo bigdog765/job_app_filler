@@ -6,48 +6,55 @@ const path = require('node:path')
 const loadTs = require('./helpers/loadTs.cjs')
 const utils = loadTs('src/inject/app/services/formFields/utils/index.ts')
 const textControl = loadTs('src/inject/app/services/formFields/greenhouseReact/textControl.ts')
+const queue = loadTs('src/shared/utils/fieldFillerQueue.ts')
+const discoveryImports = {
+  '../../contentScriptApi': { contentScriptAPI: { send: async () => ({ ok: true }) } },
+  '@src/shared/utils/fieldRequirement': loadTs('src/shared/utils/fieldRequirement.ts'),
+}
 const { xpaths } = loadTs('src/inject/app/services/formFields/greenhouseReact/xpaths.ts')
 const phoneMarkup = fs.readFileSync(path.join(__dirname, 'fixtures/greenhouse-phone.html'), 'utf8')
 const markup = '<div class="application--container"><div class="text-input-wrapper"><div class="input-wrapper"><label for="last_name">Last Name*</label><input id="last_name" type="text" autocomplete="family-name" value=""></div></div></div>'
 
-function textBackend(document, sleep) {
+function textBackend(document, sleep, element = document.querySelector('.text-input-wrapper')) {
   class Base {
     constructor(element) { this.element = element; this.listenForChanges() }
     triggerReactUpdate() {}
+    async reportResult() {}
   }
   const { TextInput } = loadTs('src/inject/app/services/formFields/greenhouseReact/TextInput.ts', {
     '@src/shared/utils/getElements': { getElement: (element, xpath) => element.querySelector(xpath.includes('label') ? 'label' : 'input') },
     './GreenhouseReactBaseInput': { GreenhouseReactBaseInput: Base }, './xpaths': { xpaths: {} },
     '../utils': utils, './textControl': textControl, '@src/shared/utils/async': { sleep },
+    '@src/shared/utils/fieldFillerQueue': queue,
   })
-  const backend = new TextInput(document.querySelector('.text-input-wrapper'))
+  const backend = new TextInput(element)
   backend.answer = async () => [{ answer: 'Example Surname' }]
   return backend
 }
 
-test('Greenhouse discovery waits for hydration and retries even without DOM mutations', async () => {
+test('Greenhouse retries pending discovery without blocking the other adapters', async () => {
   const document = new JSDOM(markup).window.document
   let retry, registrations = 0
-  const imports = { '../utils': utils, './textControl': textControl }
-  for (const name of ['AddressSearchable', 'CheckboxBoolean', 'CheckboxMulti', 'DropdownMultiSearchable', 'DropdownSearchable', 'File', 'NumberInput', 'Section', 'Textarea', 'TextInput']) {
+  const imports = { ...discoveryImports }
+  for (const name of ['CountryCode', 'AddressSearchable', 'CheckboxBoolean', 'CheckboxMulti', 'DropdownMultiSearchable', 'DropdownSearchable', 'File', 'NumberInput', 'Section', 'Textarea', 'TextInput']) {
     imports[`./${name}`] = { [name]: { autoDiscover: async () => { registrations++ } } }
   }
   const { RegisterInputs } = loadTs('src/inject/app/services/formFields/greenhouseReact/index.ts', imports, {
     document, setTimeout: fn => { retry = fn; return 1 }, clearTimeout() {},
   })
   await RegisterInputs()
-  assert.equal(registrations, 0)
+  assert.equal(registrations, 11)
   assert.equal(typeof retry, 'function')
   document.querySelector('input').__reactPropsTest = { onChange() {} }
   retry()
-  await new Promise(resolve => setImmediate(resolve))
-  assert.equal(registrations, 10)
+  await new Promise(resolve => setTimeout(resolve, 10))
+  assert.equal(registrations, 22)
   // The container is looked up again when navigation replaces/loads the form.
   document.body.innerHTML = ''
   await RegisterInputs()
   document.body.innerHTML = markup
   await RegisterInputs()
-  assert.equal(registrations, 10)
+  assert.equal(registrations, 33)
 })
 
 test('the non-React phone search does not block registration, but the actual phone still waits for hydration', async () => {
@@ -55,9 +62,14 @@ test('the non-React phone search does not block registration, but the actual pho
   const { document } = window
   const registrations = []
   let retry
-  const imports = { '../utils': utils, './textControl': textControl }
-  for (const name of ['AddressSearchable', 'CheckboxBoolean', 'CheckboxMulti', 'DropdownMultiSearchable', 'DropdownSearchable', 'File', 'NumberInput', 'Section', 'Textarea', 'TextInput']) {
-    imports[`./${name}`] = { [name]: { autoDiscover: async () => { registrations.push(name) } } }
+  const imports = { ...discoveryImports }
+  for (const name of ['CountryCode', 'AddressSearchable', 'CheckboxBoolean', 'CheckboxMulti', 'DropdownMultiSearchable', 'DropdownSearchable', 'File', 'NumberInput', 'Section', 'Textarea', 'TextInput']) {
+    imports[`./${name}`] = { [name]: { autoDiscover: async () => {
+      registrations.push(name)
+      for (const wrapper of document.querySelectorAll('.text-input-wrapper')) {
+        if (utils.getReactProps(textControl.getTextControl(wrapper))) wrapper.setAttribute('job-app-filler', 'test')
+      }
+    } } }
   }
   const { RegisterInputs } = loadTs('src/inject/app/services/formFields/greenhouseReact/index.ts', imports, {
     document, setTimeout: fn => { retry = fn; return 1 }, clearTimeout() { retry = undefined },
@@ -65,12 +77,12 @@ test('the non-React phone search does not block registration, but the actual pho
   try {
     document.getElementById('first_name').__reactPropsTest = { onChange() {} }
     await RegisterInputs()
-    assert.equal(registrations.length, 0)
+    assert.equal(registrations.length, 11)
     assert.equal(typeof retry, 'function')
     document.getElementById('phone').__reactPropsTest = { onInput() {} }
     retry()
-    await new Promise(resolve => setImmediate(resolve))
-    assert.equal(registrations.length, 10)
+    await new Promise(resolve => setTimeout(resolve, 10))
+    assert.equal(registrations.length, 22)
     assert.equal(retry, undefined)
     assert.equal(utils.getReactProps(document.getElementById('iti-0__search-input')), undefined)
   } finally { window.close() }
@@ -163,17 +175,17 @@ test('last name survives a late reset in a real hydrated React form, without the
     let pending
     // Early filling cannot persist a DOM-only value before React is ready.
     pending = backend.autoFill()
-    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setTimeout(resolve, 10))
     assert.equal(backend.currentValue(), '')
     await React.act(async () => { root = hydrateRoot(container, React.createElement(Form)) })
-    await React.act(async () => { waits.shift()(); await new Promise(resolve => setImmediate(resolve)) })
+    await React.act(async () => { waits.shift()(); await new Promise(resolve => setTimeout(resolve, 10)) })
     assert.equal(backend.currentValue(), 'Example Surname')
     assert.equal(container.querySelector('output').textContent, 'Example Surname')
     await React.act(async () => { reset() })
     assert.equal(backend.currentValue(), '')
-    await React.act(async () => { waits.shift()(); await new Promise(resolve => setImmediate(resolve)) })
+    await React.act(async () => { waits.shift()(); await new Promise(resolve => setTimeout(resolve, 10)) })
     assert.equal(container.querySelector('output').textContent, 'Example Surname')
-    while (waits.length) await React.act(async () => { waits.shift()(); await new Promise(resolve => setImmediate(resolve)) })
+    while (waits.length) await React.act(async () => { waits.shift()(); await new Promise(resolve => setTimeout(resolve, 10)) })
     await pending
   } finally {
     if (root) await React.act(async () => root.unmount())
@@ -199,4 +211,45 @@ test('Greenhouse retry preserves a user edit made while the answer lookup was pe
   assert.equal(input.value, 'Typed surname')
   assert.equal(calls, 0)
   window.close()
+})
+
+test('parallel first name, last name and email fills retain all values in shared React state', async () => {
+  const window = new JSDOM('<div id="root"></div>', { pretendToBeVisual: true }).window
+  const previous = { window: global.window, document: global.document, navigator: global.navigator, act: global.IS_REACT_ACT_ENVIRONMENT }
+  global.window = window; global.document = window.document
+  Object.defineProperty(global, 'navigator', { configurable: true, value: window.navigator })
+  global.IS_REACT_ACT_ENVIRONMENT = true
+  const React = require('react')
+  const { createRoot } = require('react-dom/client')
+  let root
+  const values = { first: 'Example', last: 'Surname', email: 'example@example.test' }
+  function Form() {
+    const [fields, setFields] = React.useState({})
+    return React.createElement(React.Fragment, null,
+      ...Object.keys(values).map(name => React.createElement('div', { className: 'text-input-wrapper', key: name },
+        React.createElement('label', { htmlFor: name }, name),
+        React.createElement('input', { id: name, value: fields[name] || '', onChange: event =>
+          setFields({ ...fields, [name]: event.target.value }) }))),
+      React.createElement('output', null, JSON.stringify(fields)))
+  }
+  try {
+    root = createRoot(window.document.getElementById('root'))
+    await React.act(async () => root.render(React.createElement(Form)))
+    // Flush each commit as the browser would between queued field updates.
+    const backends = [...window.document.querySelectorAll('.text-input-wrapper')].map(element => {
+      const backend = textBackend(window.document, async () => {}, element)
+      backend.answer = async () => [{ answer: values[element.querySelector('input').id] }]
+      return backend
+    })
+    global.IS_REACT_ACT_ENVIRONMENT = false
+    await Promise.all(backends.map(backend => backend.fill()))
+    assert.deepEqual(JSON.parse(window.document.querySelector('output').textContent), values)
+  } finally {
+    global.IS_REACT_ACT_ENVIRONMENT = true
+    if (root) await React.act(async () => root.unmount())
+    window.close()
+    global.window = previous.window; global.document = previous.document
+    Object.defineProperty(global, 'navigator', { configurable: true, value: previous.navigator })
+    global.IS_REACT_ACT_ENVIRONMENT = previous.act
+  }
 })

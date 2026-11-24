@@ -20,11 +20,21 @@ export function candidatesFor(path: FieldPath, profile: any) {
 export async function selectProfileEntry(path: FieldPath, candidates: ReturnType<typeof candidatesFor>,
   request: typeof fetch = fetch): Promise<number | null> {
   if (!candidates.length) return null
-  const response = await request('http://127.0.0.1:43187/match', {
-    method: 'POST', signal: AbortSignal.timeout(28000),
-    headers: { Authorization: 'Bearer ' + process.env.JAF_BRIDGE_TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ field: { fieldName: path.fieldName, section: path.section, fieldType: path.fieldType }, candidates }),
-  })
+  const started = Date.now()
+  let response: Response
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await request('http://127.0.0.1:43187/match', {
+        method: 'POST', signal: AbortSignal.timeout(Math.max(1, 27000 - (Date.now() - started))),
+        headers: { Authorization: 'Bearer ' + process.env.JAF_BRIDGE_TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field: { fieldName: path.fieldName, section: path.section, fieldType: path.fieldType }, candidates }),
+      })
+      if (response.ok || (response.status !== 429 && response.status < 500) || attempt === 1) break
+    } catch (error) {
+      if (attempt === 1 || Date.now() - started > 25000) throw error
+    }
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
   if (!response.ok) throw new Error('Local AI service failed (HTTP ' + response.status + '). Check npm run ai:server and OPENAI_API_KEY.')
   const { entryId } = await response.json()
   if (entryId !== null && (!Number.isInteger(entryId) || !candidates.some(candidate => candidate.id === entryId))) {

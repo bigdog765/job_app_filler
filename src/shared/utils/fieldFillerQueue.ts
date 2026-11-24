@@ -1,6 +1,6 @@
 class AsyncQueue<T> {
   private static instance: AsyncQueue<any>
-  private queue: [() => Promise<T>, any][]
+  private queue: [() => Promise<T>, () => void, (error: unknown) => void][]
   private running: boolean
 
   private constructor() {
@@ -19,10 +19,12 @@ class AsyncQueue<T> {
   // Add a task to the queue
   public enqueue(task: () => Promise<T>): Promise<void> {
     let taskComplete: () => void
-    const promise = new Promise<void>((resolve) => {
+    let taskFailed: (error: unknown) => void
+    const promise = new Promise<void>((resolve, reject) => {
       taskComplete = resolve
+      taskFailed = reject
     })
-    this.queue.push([task, taskComplete])
+    this.queue.push([task, taskComplete, taskFailed])
     this.runNext()
     return promise
   }
@@ -35,13 +37,13 @@ class AsyncQueue<T> {
 
     this.running = true
 
-    const [task, taskComplete] = this.queue.shift()
+    const [task, taskComplete, taskFailed] = this.queue.shift()
     if (task) {
       try {
         await task()
         taskComplete()
       } catch (error) {
-        console.error('Task failed', error)
+        taskFailed(error)
       }
     }
 

@@ -4,6 +4,7 @@ import { Alert, Button, FormControlLabel, Stack, Switch, Typography } from '@mui
 export function OpenAISettings() {
   const [enabled, setEnabled] = useState(true)
   const [status, setStatus] = useState('')
+  const [fields, setFields] = useState<Array<{ fieldName: string; section: string; stage: string }>>([])
   useEffect(() => {
     chrome.storage.session.get(['openaiEnabled', 'openaiStatus']).then(values => {
       setEnabled(values.openaiEnabled !== false)
@@ -13,7 +14,17 @@ export function OpenAISettings() {
       if (area === 'session' && changes.openaiStatus) setStatus(changes.openaiStatus.newValue || '')
     }
     chrome.storage.onChanged.addListener(changed)
-    return () => chrome.storage.onChanged.removeListener(changed)
+    let active = true
+    const refresh = async () => {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+        const result = await chrome.tabs.sendMessage(tab.id, { type: 'GET_FIELD_DIAGNOSTICS' })
+        if (active) setFields(Array.isArray(result) ? result : [])
+      } catch { if (active) setFields([]) }
+    }
+    refresh()
+    const timer = setInterval(refresh, 1500)
+    return () => { active = false; clearInterval(timer); chrome.storage.onChanged.removeListener(changed) }
   }, [])
   async function reset() {
     await chrome.storage.session.set({ openaiReset: Date.now(), openaiStatus: 'Ready. Refresh the form to retry matching.' })
@@ -29,5 +40,12 @@ export function OpenAISettings() {
     }} />} />
     <Button onClick={reset}>Reset matching</Button>
     {status && <Alert severity="info">{status}</Alert>}
+    {fields.map(field => <Alert severity="warning" key={JSON.stringify([field.fieldName, field.section])}>
+      {field.fieldName}{field.section ? ` (${field.section})` : ''} — {{
+        discovery: 'JAF could not initialize this required control.',
+        matching: 'No usable answer was returned for this required field.',
+        selection: 'JAF found an answer but could not keep it selected or filled.',
+      }[field.stage]}
+    </Alert>)}
   </Stack>
 }

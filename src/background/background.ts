@@ -4,7 +4,7 @@ import { candidatesFor, selectProfileEntry } from './profileMatcher'
 // Remove credentials left by the previous popup-based configuration.
 chrome.storage.session.remove('openaiConfig')
 let generation = 0
-const lanes: Promise<any>[] = Array.from({ length: 4 }, () => Promise.resolve())
+const lanes: Promise<any>[] = Array.from({ length: 8 }, () => Promise.resolve())
 let nextLane = 0
 const cache = new Map<string, Promise<number | null>>()
 const budgets = new Map<number, number>()
@@ -48,6 +48,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (generation !== requestGeneration) return null
         if (Date.now() - queuedAt > 30000) throw new Error('AI matching is busy. Reset matching in the popup, then refresh to retry.')
         return selectProfileEntry(path, candidates)
+      }).catch(error => {
+        // A transient failure must not poison future requests for this field.
+        if (cache.get(key) === pending) cache.delete(key)
+        throw error
       })
       lanes[lane] = pending.catch(() => {})
       cache.set(key, pending)

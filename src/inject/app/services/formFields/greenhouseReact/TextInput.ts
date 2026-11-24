@@ -4,6 +4,7 @@ import { xpaths } from "./xpaths";
 import { getReactProps } from "../utils";
 import { sleep } from '@src/shared/utils/async'
 import { getTextControl } from './textControl'
+import fieldFillerQueue from '@src/shared/utils/fieldFillerQueue'
 
 
 
@@ -29,6 +30,7 @@ export class TextInput extends GreenhouseReactBaseInput<any> {
       // typing (including a focused input used by accessibility/input tools).
       if (!this.filling && (event.isTrusted || input.ownerDocument.activeElement === input)) this.edited = true
       this.triggerReactUpdate()
+      if (this.edited && input.value) void this.reportResult(null)
     })
   }
 
@@ -40,13 +42,25 @@ export class TextInput extends GreenhouseReactBaseInput<any> {
     this.automaticFill = (async () => {
       // A late React initialization/reset can clear an early successful fill.
       // Recheck briefly, without continually replacing edits or nonblank values.
-      for (const delay of [0, 200, 500, 1000, 2000]) {
+      let answers = []
+      for (const delay of [0, 200, 500, 1000, 2000, 4000]) {
         if (delay) await sleep(delay)
         if (this.edited || !this.inputElement?.isConnected) return
         if (delay && this.currentValue()) continue
         const before = this.currentValue()
-        const answers = await this.answer()
-        if (!this.edited && this.currentValue() === before) this.fillAnswer(answers[0]?.answer)
+        try {
+          if (!answers.length) answers = await this.answer()
+          await fieldFillerQueue.enqueue(async () => {
+            if (!this.edited && this.inputElement?.isConnected && this.currentValue() === before) {
+              this.fillAnswer(answers[0]?.answer)
+              // Let React commit before the next field reads its current handlers.
+              await new Promise(resolve => setTimeout(resolve, 0))
+            }
+          })
+        } catch { /* Retry a transient lookup or initialization failure. */ }
+      }
+      if (!this.edited && this.inputElement?.isConnected) {
+        await this.reportResult(this.currentValue() ? null : answers.length ? 'selection' : 'matching')
       }
     })()
     return this.automaticFill
@@ -78,7 +92,11 @@ export class TextInput extends GreenhouseReactBaseInput<any> {
     this.triggerReactUpdate()
   }
   async fill(): Promise<void> {
-      const answers = await this.answer()
+    const answers = await this.answer()
+    await fieldFillerQueue.enqueue(async () => {
       this.fillAnswer(answers[0]?.answer)
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+    await this.reportResult(this.currentValue() ? null : answers.length ? 'selection' : 'matching')
   }
 }

@@ -1,6 +1,6 @@
 import { getElement, getElements } from '@src/shared/utils/getElements'
 
-const SECTION_XPATH = `.//div[@class = "education--form"]`
+const SECTION_XPATH = `.//div[contains(concat(" ", normalize-space(@class), " "), " education--form ")]`
 
 const assignNumbersToSections = () => {
   const sectionElements = getElements(document, SECTION_XPATH)
@@ -38,7 +38,7 @@ export class Section {
     const observer = new MutationObserver((mutations: MutationRecord[]) => {
       if (getElement(
         mutations,
-        `self::div[@class = "education--form"]`,
+        `self::div[contains(concat(" ", normalize-space(@class), " "), " education--form ")]`,
         {only: "removedNodes"}
       )) {
         assignNumbersToSections()

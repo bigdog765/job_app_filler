@@ -24,6 +24,8 @@ export function fieldMeaning(value: string, section = ''): string {
     'Full Name': ['full name', 'legal name', 'legal full name'],
     Email: ['email', 'email address', 'e-mail', 'e-mail address'],
     Phone: ['phone', 'phone number', 'telephone', 'telephone number', 'mobile number'],
+    Location: ['location', 'location (city)', 'current location'],
+    State: ['state', 'us state', 'u s state', 'state/province', 'which u s state or canadian province do you reside in'],
   }
   const work: Record<string, string[]> = {
     Company: ['company', 'company name', 'employer', 'employer name', 'name of employer', 'name of the employer', 'name of the company', 'organization', 'organisation', 'company/employer', 'employer/company name'],

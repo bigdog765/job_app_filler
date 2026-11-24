@@ -31,7 +31,10 @@ export async function answerRequest(method: string, data: any): Promise<any> {
       return convert1010To106(answers1010.update(convert106To1010(data) as SavedAnswer))
     case 'getAnswer': {
       const local = answersWithProfileFallback(answers1010.search(data).map(convert1010To106), data, localProfile)
-      return local.length ? local : aiProfileAnswer(data, localProfile)
+      if (local.length) return local
+      const inferred = profileSuggestion(data, localProfile)
+      if (inferred !== undefined) return [{ answer: inferred, path: { ...data }, source: 'localProfile', matchType: 'local profile' }]
+      return aiProfileAnswer(data, localProfile)
     }
     case 'deleteAnswer':
       return answers1010.delete(data)

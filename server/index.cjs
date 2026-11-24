@@ -28,7 +28,7 @@ function createBridgeServer({ apiKey, token, request = fetch }) {
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'JSON required' })
     if (!apiKey) return send(503, { error: 'OPENAI_API_KEY is not set' })
     if (Date.now() - windowStart >= 60000) { used = 0; windowStart = Date.now() }
-    if (active >= 4 || used >= 100) return send(429, { error: 'Matching limit reached' })
+    if (active >= 8 || used >= 100) return send(429, { error: 'Matching limit reached' })
     active++
     try {
       const chunks = []

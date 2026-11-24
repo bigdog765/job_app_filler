@@ -1,4 +1,5 @@
 import './publicPath'
+import { reportFieldResult, getFieldDiagnostics } from './fieldDiagnostics'
 import { startAcknowledgments } from './acknowledgments'
 import { Server } from '@src/shared/utils/crossContextCommunication/server'
 import { getSiteAdapter } from '@src/shared/utils/siteAdapter'
@@ -19,6 +20,10 @@ function ensureApp() {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GET_FIELD_DIAGNOSTICS') {
+    sendResponse(getFieldDiagnostics())
+    return
+  }
   if (message.type === 'REVIEW_PROFILE' || message.type === 'APPLY_PROFILE_UPDATES') {
     if (specialized) { sendResponse({ ok: false, specialized: true }); return }
     Promise.resolve().then(async () => {
@@ -58,6 +63,7 @@ async function run() {
   }
   // Only ATS host patterns need page-context access to React internals.
   const server = new Server(process.env.CONTENT_SCRIPT_URL)
+  server.register('reportFieldResult', async data => reportFieldResult(data))
   for (const method of ['addAnswer', 'saveAnswer', 'updateAnswer', 'getAnswer', 'deleteAnswer']) {
     server.register(method, (data) => answerRequest(method, data))
   }

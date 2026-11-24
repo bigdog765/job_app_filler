@@ -4,6 +4,15 @@ import { answersWithProfileFallback } from './profileFallback'
 
 /** Explicit review uses the current local profile, independently of Chrome history. */
 export function profileSuggestion(path: FieldPath, profile: any) {
+  const datePart = path.fieldName?.replace(/[*✱✲✳∗⁎]/g, '').trim().match(/^(start|end)(?: date)? (month|year)$/i)
+  if (datePart) {
+    const date = profileSuggestion({ ...path, fieldName: datePart[1].toLowerCase() === 'start' ? 'Start Date' : 'End Date',
+      fieldType: 'MonthYear' }, profile)
+    if (Array.isArray(date) && date.length === 2) {
+      const value = date[datePart[2].toLowerCase() === 'month' ? 0 : 1]
+      return path.fieldType === 'SimpleDropdown' ? [value] : value
+    }
+  }
   const canonical = { ...path, section: sectionMeaning(path.section),
     fieldName: fieldMeaning(path.fieldName, path.section) }
   const entries = Array.isArray(profile?.entries) ? profile.entries.filter((entry: any) =>
