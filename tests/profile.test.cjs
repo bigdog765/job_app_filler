@@ -2,6 +2,7 @@ const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const loadTs = require('./helpers/loadTs.cjs')
 const resolver = loadTs('src/contentScript/utils/storage/profileResolver.ts')
+const executionLog = loadTs('src/contentScript/executionLog.ts', {}, { console: { log() {}, warn() {}, error() {} } })
 const { validateProfile, resolveProfile } = resolver
 const entry = (overrides = {}) => ({ id: 'given-name', labels: ['First Name'], value: 'Ada', ...overrides })
 const field = (overrides = {}) => ({ fieldName: 'First Name', section: '', fieldType: 'TextInput', ...overrides })
@@ -63,6 +64,7 @@ test('unsupported and invalid requests return explicit no-match', () => {
 test('answer service and content bridge use profile only and never touch Chrome storage', async () => {
   const service = loadTs('src/contentScript/utils/storage/answerService.ts', {
     'local-profile': { data: { entries: [entry()] }, error: null }, './profileResolver': resolver,
+    '../../executionLog': executionLog,
   })
   const methods = {}
   let listener
@@ -70,6 +72,7 @@ test('answer service and content bridge use profile only and never touch Chrome 
     '@src/shared/utils/crossContextCommunication/server': { Server: class { register(name, fn) { methods[name] = fn } } },
     './app/App': { EVENT_LISTENER_ID: 'test', loadApp() {} },
     './utils/storage/answerService': service,
+    './executionLog': executionLog,
   }, {
     chrome: { runtime: { getURL: x => x, onMessage: { addListener: fn => { listener = fn } } }, storage: new Proxy({}, { get() { throw new Error('Storage accessed') } }) },
     document: { createElement: () => ({ setAttribute() {} }), head: { appendChild() {} } },

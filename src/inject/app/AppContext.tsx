@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react'
 import { BaseFormInput } from './services/formFields/baseFormInput'
+import { contentScriptAPI } from './services/contentScriptApi'
 import { EditableAnswerState } from './hooks/useEditableAnswerState'
 import { PopperState, usePopperState } from './hooks/usePopperState'
 
@@ -91,10 +92,16 @@ export const ContextProvider: FC<{
   }
 
   const handleFill = async () => {
+    const report = (event: string) => { contentScriptAPI.send('reportExecutionEvent', { event }).catch(() => {}) }
+    report('start')
     setFillButtonDisabled(true)
     try {
       await backend.fill()
       await refresh()
+      report('complete')
+    } catch (error) {
+      report('error')
+      throw error
     } finally {
       setFillButtonDisabled(false)
     }

@@ -1,5 +1,13 @@
 # Local profile
 
+The extension popup includes an **Execution console** for the current page's
+main frame. It refreshes every second and shows profile loading, lookup outcomes,
+fill requests/completions/errors, and blocked legacy writes. Pause freezes the
+display; Clear empties the buffer. The last 300 events remain in memory while the
+page is open and reset on reload. Events also appear in Chrome's developer console
+with the `[Job App Filler]` prefix. Profile values and raw error details are omitted.
+A completed fill routine does not necessarily mean a field was filled.
+
 Copy `profile.example.json` to `profile.local.json` and enter your answers. Keep
 IDs unique and stable when editing or reordering entries. Personal profiles are
 git-ignored; the example must remain blank.
