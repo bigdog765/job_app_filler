@@ -42,8 +42,8 @@ borrows from a numbered one. Unknown/custom sections match literally.
 AI is not connected yet. Passwords, files, full dates, and consent/signature
 questions are excluded. Existing site adapters still control filling and option
 selection; this change does not add generic-form support or new filling behavior.
-The legacy editor remains visible until the UI migration, but cannot save or
-delete answers. Old Chrome-saved data remains untouched and is not searched.
+On-page icons, toolbars, answer editors, and release dialogs are not mounted.
+Autofill runs independently; diagnostics remain in the extension popup. Old Chrome-saved data remains untouched and is not searched.
 
 Run `npm start` for watch builds or `npx webpack --config webpack.prod.js` for a
 single production build, then reload the unpacked extension and refresh the

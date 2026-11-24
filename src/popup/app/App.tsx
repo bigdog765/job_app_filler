@@ -47,27 +47,6 @@ export const App: FC<{}> = () => {
           <Stack direction={'row'} spacing={1}>
             <Button
               variant="outlined"
-              onClick={() => {
-                chrome.tabs.query(
-                  { active: true, currentWindow: true },
-                  (tabs) => {
-                    chrome.tabs
-                      .sendMessage(tabs[0].id, {
-                        type: 'SHOW_WHATS_NEW',
-                      })
-                      .catch((err) => {
-                        setSnackbarMessage('Only works on workday sites.')
-                        setSnackbarOpen(true)
-                      }),
-                      () => {}
-                  }
-                )
-              }}
-            >
-              what's new?
-            </Button>
-            <Button
-              variant="outlined"
               href="https://youtu.be/JYMATq9siIY"
               target="_blank"
               endIcon={<OpenInNewIcon />}

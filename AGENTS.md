@@ -7,7 +7,8 @@ migration is complete. Where older
 Steps 1 and 2 are implemented: build-time profile loading/validation, popup
 diagnostics, and one profile-only resolver with exact and bounded semantic
 matching. Legacy storage is untouched and writes are disabled. AI, the generic
-adapter, and the toolbar removal described below remain future work.
+adapter, and deletion of unused editor code remain future work. On-page widgets
+and dialogs are no longer mounted; autofill runs independently of React UI.
 
 ## Profile and loading
 

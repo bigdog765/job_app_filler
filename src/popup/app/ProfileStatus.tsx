@@ -24,7 +24,7 @@ export function ProfileStatus() {
     {unavailable && <Typography>Open a supported application page and refresh it to check the loaded profile.</Typography>}
     <Typography variant="body2" sx={{ my: 1 }}>
       Answers come from profile.local.json. Edit the file, rebuild, reload the extension,
-      and refresh the page to apply changes. Website Save/Edit controls are read-only.
+      and refresh the page to apply changes. Autofill runs without on-page widgets.
     </Typography>
   </>
 }

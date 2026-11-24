@@ -1,6 +1,5 @@
 import { Server } from '@src/shared/utils/crossContextCommunication/server'
 import { FieldPath } from '@src/shared/utils/types'
-import { EVENT_LISTENER_ID, loadApp } from './app/App'
 import { getAnswers, profileStatus } from './utils/storage/answerService'
 import { logEvent, getExecutionLog, clearExecutionLog } from './executionLog'
 
@@ -41,14 +40,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse(profileStatus())
     return
   }
-  if (message.type === 'SHOW_WHATS_NEW') {
-    document.dispatchEvent(new CustomEvent(EVENT_LISTENER_ID))
-  }
 })
 
 const run = async () => {
   injectScript('inject.js')
-  loadApp()
 }
 
 run()
