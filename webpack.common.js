@@ -19,6 +19,10 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /profile-source\.js$/,
+        use: path.resolve(__dirname, 'build/profile-loader.cjs'),
+      },
+      {
         use: 'ts-loader',
         test: /\.tsx?$/,
         exclude: /node_modules/,
@@ -52,6 +56,7 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
       "@src": path.resolve(__dirname, "src"),
+      'local-profile$': path.resolve(__dirname, 'build/profile-source.js'),
     },
   },
   output: {

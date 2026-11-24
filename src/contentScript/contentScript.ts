@@ -1,31 +1,17 @@
 import { Server } from '@src/shared/utils/crossContextCommunication/server'
-import { FieldPath, Answer } from '@src/shared/utils/types'
+import { FieldPath } from '@src/shared/utils/types'
 import { EVENT_LISTENER_ID, loadApp } from './app/App'
-import { answers1010, migrate1010 } from './utils/storage/Answers1010'
-import { convert106To1010, convert1010To106 } from './utils/storage/DataStore'
-import { SavedAnswer } from './utils/storage/DataStoreTypes'
-import { migrateEducation } from './utils/storage/migrateEducationSectionNames'
+import { getAnswers, profileStatus } from './utils/storage/answerService'
 
 // Regiser server and methods accessible to injected script.
 const server = new Server(process.env.CONTENT_SCRIPT_URL)
-server.register('addAnswer', async (newAnswer: Answer) => {
-  const answer1010 = answers1010.add(convert106To1010(newAnswer))
-  return convert1010To106(answer1010)
-})
-
-server.register('updateAnswer', async (newAnswer: Answer) => {
-  const answer1010 = answers1010.update(
-    convert106To1010(newAnswer) as SavedAnswer
-  )
-  return convert1010To106(answer1010)
-})
+// Legacy UI will be removed separately. It cannot mutate profile or saved data.
+for (const method of ['addAnswer', 'saveAnswer', 'updateAnswer', 'deleteAnswer']) {
+  server.register(method, async () => { throw new Error('Answers are read-only. Edit profile.local.json and rebuild/reload the extension.') })
+}
 
 server.register('getAnswer', async (fieldPath: FieldPath) => {
-  return answers1010.search(fieldPath).map((record) => convert1010To106(record))
-})
-
-server.register('deleteAnswer', async (id: number) => {
-  return answers1010.delete(id)
+  return getAnswers(fieldPath)
 })
 
 // inject script
@@ -41,15 +27,16 @@ function injectScript(filePath: string) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GET_PROFILE_STATUS') {
+    sendResponse(profileStatus())
+    return
+  }
   if (message.type === 'SHOW_WHATS_NEW') {
     document.dispatchEvent(new CustomEvent(EVENT_LISTENER_ID))
   }
 })
 
 const run = async () => {
-  await answers1010.load()
-  await migrate1010()
-  await migrateEducation()
   injectScript('inject.js')
   loadApp()
 }

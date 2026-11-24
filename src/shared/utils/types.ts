@@ -27,6 +27,7 @@ export type FieldPath = {
   fieldName: string
 }
 export type Answer<T = any> = {
+  profileEntryId?: string
   answer: T
   path: FieldPath | null
   hasAnswer?: boolean

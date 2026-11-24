@@ -1,5 +1,13 @@
 # Job App Filler 2.1.2
 
+## Fork: local profile answers
+
+Application answers now come exclusively from git-ignored `profile.local.json`.
+Copy the blank `profile.example.json`, enter your values, then rebuild/reload the
+extension and refresh the application page. See [profile setup](docs/local-profile.md).
+The legacy answer editor is read-only pending removal; older saved-answer and
+editor descriptions below describe upstream behavior. AI matching is not connected yet.
+
 Job App Filler is a chrome extension that autofills fields properly
 on tedious job sites such as workday, icims, etc. 
 

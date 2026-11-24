@@ -1,8 +1,13 @@
 # Fork architecture
 
 This is the target architecture for future implementation, not a claim that the
-migration is complete. This task changes documentation only. Where older
+migration is complete. Where older
 `agent.md` or README descriptions differ, follow this plan for the fork.
+
+Steps 1 and 2 are implemented: build-time profile loading/validation, popup
+diagnostics, and one profile-only resolver with exact and bounded semantic
+matching. Legacy storage is untouched and writes are disabled. AI, the generic
+adapter, and the toolbar removal described below remain future work.
 
 ## Profile and loading
 

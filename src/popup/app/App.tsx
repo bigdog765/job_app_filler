@@ -17,6 +17,7 @@ import { ThemeProvider } from '@emotion/react'
 import { theme } from '@src/shared/utils/react'
 import { ContentCopyIcon, GitHubIcon, OpenInNewIcon } from '@src/shared/utils/icons'
 import { LogoTitleBar } from '@src/shared/components/LogoTitleBar'
+import { ProfileStatus } from './ProfileStatus'
 
 const EMAIL_ADDRESS = 'berellevy+chromeextensions@gmail.com'
 
@@ -37,6 +38,7 @@ export const App: FC<{}> = () => {
       </Box>
       <Box component={'main'}>
         <Container sx={{ my: 2 }}>
+          <ProfileStatus />
           <Typography variant="h6" sx={{mb: 1}}>
             The Best Autofill Since Sliced Bread.
           </Typography>

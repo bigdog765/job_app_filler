@@ -1,0 +1,10 @@
+{
+  "entries": [
+    { "id": "first-name", "labels": ["First Name", "Given Name"], "value": "" },
+    { "id": "last-name", "labels": ["Last Name", "Surname"], "value": "" },
+    { "id": "email", "labels": ["Email", "Email Address"], "value": "" },
+    { "id": "phone", "labels": ["Phone Number"], "value": "" },
+    { "id": "work-1-employer", "labels": ["Company", "Employer"], "sections": ["Work Experience 1"], "fieldTypes": ["TextInput"], "value": "" },
+    { "id": "work-1-start", "labels": ["From", "Start Date"], "sections": ["Work Experience 1"], "fieldTypes": ["MonthYear"], "value": null }
+  ]
+}
